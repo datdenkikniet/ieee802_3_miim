@@ -23,6 +23,8 @@ pub enum LinkSpeed {
     Mbps100,
     /// 10 Mbps
     Mpbs10,
+    /// An illegal link speed is configured
+    Illegal,
 }
 
 impl From<Bcr> for LinkSpeed {
@@ -31,10 +33,10 @@ impl From<Bcr> for LinkSpeed {
             bcr.contains(Bcr::SPEED_SEL_MSB),
             bcr.contains(Bcr::SPEED_SEL_LSB),
         ) {
-            (true, true) => panic!("Invalid link speed"),
-            (true, false) => Self::Mpbs1000,
-            (false, true) => Self::Mbps100,
-            (false, false) => Self::Mpbs10,
+            (true, true) => LinkSpeed::Illegal,
+            (true, false) => LinkSpeed::Mpbs1000,
+            (false, true) => LinkSpeed::Mbps100,
+            (false, false) => LinkSpeed::Mpbs10,
         }
     }
 }
@@ -45,6 +47,7 @@ impl From<LinkSpeed> for Bcr {
             LinkSpeed::Mpbs1000 => Bcr::SPEED_SEL_MSB,
             LinkSpeed::Mbps100 => Bcr::SPEED_SEL_LSB,
             LinkSpeed::Mpbs10 => Bcr::empty(),
+            LinkSpeed::Illegal => panic!("Cannot convert illegal link speed into Bcr"),
         }
     }
 }

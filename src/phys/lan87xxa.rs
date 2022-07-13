@@ -1,11 +1,7 @@
 //! SMSC LAN87xxA (LAN8742A, LAN8720A) Ethernet PHYs
 
-use core::convert::TryFrom;
-
-use num_enum::{IntoPrimitive, TryFromPrimitive};
-
 /// The link speeds supported by this PHY
-#[derive(Clone, Copy, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug)]
 #[repr(u8)]
 pub enum LinkSpeed {
     /// 10BaseT - Half duplex
@@ -16,6 +12,19 @@ pub enum LinkSpeed {
     BaseT100HalfDuplex = 0b010,
     /// 100BaseT - Full duplex
     BaseT100FullDuplex = 0b110,
+}
+
+impl LinkSpeed {
+    fn from_u8(val: u8) -> Option<Self> {
+        let speed = match val {
+            0b001 => LinkSpeed::BaseT10HalfDuplex,
+            0b101 => LinkSpeed::BaseT10FullDuplex,
+            0b010 => LinkSpeed::BaseT100HalfDuplex,
+            0b110 => LinkSpeed::BaseT100FullDuplex,
+            _ => return None,
+        };
+        Some(speed)
+    }
 }
 
 /// SMSC LAN8720A Ethernet PHY
@@ -86,7 +95,7 @@ impl<S: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<S, EXT_WUCSR_CLEAR> {
     pub fn link_speed(&mut self) -> Option<LinkSpeed> {
         let link_data = self.read(PHY_REG_SSR);
         let link_data = ((link_data >> 2) & 0b111) as u8;
-        LinkSpeed::try_from(link_data).ok()
+        LinkSpeed::from_u8(link_data)
     }
 
     /// Check if the link is up
