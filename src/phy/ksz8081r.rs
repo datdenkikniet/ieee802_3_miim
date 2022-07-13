@@ -1,8 +1,6 @@
 //! Phy implementation for the Microchip KSZ8081R
 
-use crate::{
-    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Pause, Phy, SelectorField,
-};
+use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Phy};
 
 /// A KSZ8081R
 pub struct Ksz8081r<MII: Mii> {
@@ -45,13 +43,12 @@ impl<MII: Mii> Ksz8081r<MII> {
 impl<MII: Mii> Phy<MII> for Ksz8081r<MII> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
-            selector_field: SelectorField::Std802_3,
             hd_10base_t: true,
             fd_10base_t: true,
             hd_100base_tx: true,
             fd_100base_tx: true,
             base100_t4: true,
-            pause: Pause::NoPause,
+            ..Default::default()
         }
     }
 

@@ -1,9 +1,6 @@
 //! SMSC LAN87xxA (LAN8742A, LAN8720A) Ethernet PHYs
 
-use crate::{
-    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Pause, Phy, PhyStatus,
-    SelectorField,
-};
+use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Phy, PhyStatus};
 
 /// SMSC LAN8720A Ethernet PHY
 pub type LAN8720A<SMI> = LAN87xxA<SMI, false>;
@@ -107,13 +104,12 @@ impl<M: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<M, EXT_WUCSR_CLEAR> {
 impl<M: Mii, const E: bool> Phy<M> for LAN87xxA<M, E> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
-            selector_field: SelectorField::Std802_3,
             hd_10base_t: true,
             fd_10base_t: true,
             hd_100base_tx: true,
             fd_100base_tx: true,
             base100_t4: false,
-            pause: Pause::NoPause,
+            ..Default::default()
         }
     }
 

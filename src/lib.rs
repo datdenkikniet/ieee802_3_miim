@@ -145,6 +145,12 @@ pub enum SelectorField {
     Std1394,
 }
 
+impl Default for SelectorField {
+    fn default() -> Self {
+        Self::Std802_3
+    }
+}
+
 impl From<AutoNegCap> for SelectorField {
     fn from(ana: AutoNegCap) -> Self {
         if ana.contains(AutoNegCap::SEL_802_3) {
@@ -239,13 +245,13 @@ pub struct AutoNegotiationAdvertisement {
 impl Default for AutoNegotiationAdvertisement {
     fn default() -> Self {
         Self {
-            selector_field: SelectorField::Std802_3,
+            selector_field: Default::default(),
             hd_10base_t: false,
             fd_10base_t: false,
             hd_100base_tx: false,
             fd_100base_tx: false,
             base100_t4: false,
-            pause: Pause::NoPause,
+            pause: Default::default(),
         }
     }
 }
