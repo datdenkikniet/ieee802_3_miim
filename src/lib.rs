@@ -5,6 +5,7 @@
 //! by IEEE standard 802.3
 
 mod mii;
+
 pub use mii::Mii;
 
 mod mmd;
@@ -318,14 +319,24 @@ pub trait Phy<M: Mii> {
         self.write(Bcr::ADDRESS, bcr.bits());
     }
 
-    /// Perform a reset, blocking until the reset is completed
-    fn blocking_reset(&mut self) {
+    /// Check if the PHY is currently resetting
+    fn is_resetting(&self) -> bool {
+        self.bcr().is_resetting()
+    }
+
+    /// Reset the PHY. Verify that the reset by checking
+    /// [`Self::is_resetting`] == false before continuing usage
+    fn reset(&mut self) {
         self.modify_bcr(|mut bcr| {
-            bcr.insert(Bcr::RESET);
+            bcr.reset(true);
             bcr
         });
+    }
 
-        while self.bcr().contains(Bcr::RESET) {}
+    /// Perform a reset, blocking until the reset is completed
+    fn blocking_reset(&mut self) {
+        self.reset();
+        while self.is_resetting() {}
     }
 
     flag!(

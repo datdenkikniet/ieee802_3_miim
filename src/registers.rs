@@ -121,6 +121,7 @@ impl Bcr {
     impl_flag!(set_powered_down, powered_down, Self::POWER_DOWN);
     impl_flag!(set_autonegotiation, autonegotiation, Self::AUTONEG_ENABLE);
     impl_flag!(set_loopback, loopback, Self::LOOPBACK);
+    impl_flag!(reset, is_resetting, Self::RESET);
 }
 
 impl Bsr {
