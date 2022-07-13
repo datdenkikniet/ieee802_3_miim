@@ -1,5 +1,15 @@
 //! SMSC LAN87xxA (LAN8742A, LAN8720A) Ethernet PHYs
 
+use crate::{
+    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Pause, Phy, PhyStatus,
+    SelectorField,
+};
+
+/// SMSC LAN8720A Ethernet PHY
+pub type LAN8720A<SMI> = LAN87xxA<SMI, false>;
+/// SMSC LAN8742A Ethernet PHY
+pub type LAN8742A<SMI> = LAN87xxA<SMI, true>;
+
 /// The link speeds supported by this PHY
 #[derive(Clone, Copy, Debug)]
 #[repr(u8)]
@@ -27,35 +37,12 @@ impl LinkSpeed {
     }
 }
 
-/// SMSC LAN8720A Ethernet PHY
-pub type LAN8720A<SMI> = LAN87xxA<SMI, false>;
-/// SMSC LAN8742A Ethernet PHY
-pub type LAN8742A<SMI> = LAN87xxA<SMI, true>;
-
-use crate::{
-    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Pause, Phy, PhyStatus,
-    SelectorField,
-};
-
 use self::consts::*;
-#[allow(missing_docs, dead_code)]
 mod consts {
-    const PHY_REG_ANRX: u8 = 0x05;
-    const PHY_REG_ANEXP: u8 = 0x06;
-    const PHY_REG_ANNPTX: u8 = 0x07;
-    const PHY_REG_ANNPRX: u8 = 0x08;
+
     pub const PHY_REG_SSR: u8 = 0x1F; // Special Status Register
-    const PHY_REG_CTL: u8 = 0x0D; // Ethernet PHY Register Control
-    const PHY_REG_ADDAR: u8 = 0x0E; // Ethernet PHY Address or Data
-
     pub const PHY_REG_WUCSR: u16 = 0x8010;
-
     pub const PHY_REG_SSR_ANDONE: u16 = 1 << 12;
-    const PHY_REG_SSR_SPEED: u16 = 0b111 << 2;
-    const PHY_REG_SSR_10BASE_HD: u16 = 0b001 << 2;
-    const PHY_REG_SSR_10BASE_FD: u16 = 0b101 << 2;
-    const PHY_REG_SSR_100BASE_HD: u16 = 0b010 << 2;
-    const PHY_REG_SSR_100BASE_FD: u16 = 0b110 << 2;
 }
 
 /// An SMSC LAN87XXA Ethernet PHY.
@@ -64,15 +51,15 @@ mod consts {
 /// in extended registers should be cleared
 ///
 /// This type should not be used directly. Use [`LAN8720A`] or [`LAN8742A`] instead.
-pub struct LAN87xxA<S, const EXT_WUCSR_CLEAR: bool> {
+pub struct LAN87xxA<M: Mii, const EXT_WUCSR_CLEAR: bool> {
     phy_addr: u8,
-    smi: S,
+    smi: M,
 }
 
-impl<S: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<S, EXT_WUCSR_CLEAR> {
+impl<M: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<M, EXT_WUCSR_CLEAR> {
     /// Create a new LAN87XXA based PHY
-    pub fn new(smi: S, phy_addr: u8) -> Self {
-        LAN87xxA { smi, phy_addr }
+    pub fn new(mii: M, phy_addr: u8) -> Self {
+        LAN87xxA { smi: mii, phy_addr }
     }
 
     /// Initialize the PHY
@@ -83,9 +70,8 @@ impl<S: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<S, EXT_WUCSR_CLEAR> {
         }
 
         self.set_autonegotiation(true);
+        self.set_autonegotiation_advertisement(self.best_supported_advertisement());
         self.restart_autonegotiation();
-
-        self.set_autonegotiation_advertisement(Self::BEST_SUPPORTED_ADVERTISEMENT);
     }
 
     /// Get the link speed
@@ -112,18 +98,15 @@ impl<S: Mii, const EXT_WUCSR_CLEAR: bool> LAN87xxA<S, EXT_WUCSR_CLEAR> {
         while !self.link_established() {}
     }
 
-    /// Release the underlying [`SerialManagement`]
-    pub fn release(self) -> S {
+    /// Release the underlying [`Mii`]
+    pub fn release(self) -> M {
         self.smi
     }
 }
 
 impl<M: Mii, const E: bool> Phy<M> for LAN87xxA<M, E> {
-    const BEST_SUPPORTED_ADVERTISEMENT: AutoNegotiationAdvertisement =
+    fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
-            next_page: false,
-            remote_fault: false,
-            extended_next_page: false,
             selector_field: SelectorField::Std802_3,
             hd_10base_t: true,
             fd_10base_t: true,
@@ -131,13 +114,14 @@ impl<M: Mii, const E: bool> Phy<M> for LAN87xxA<M, E> {
             fd_100base_tx: true,
             base100_t4: false,
             pause: Pause::NoPause,
-        };
+        }
+    }
 
-    fn get_smi_mut(&mut self) -> &mut M {
+    fn get_mii_mut(&mut self) -> &mut M {
         &mut self.smi
     }
 
-    fn get_smi(&self) -> &M {
+    fn get_mii(&self) -> &M {
         &self.smi
     }
 

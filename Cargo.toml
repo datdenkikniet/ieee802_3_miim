@@ -10,7 +10,12 @@ keywords = ["ethernet"]
 categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = [ "lan87xxa", "kzs8081r" ]
+
+phy = [ ]
+lan87xxa = [ "phy" ]
+kzs8081r = [ "phy" ]
 
 [dependencies]
 bitflags = "1.3"
