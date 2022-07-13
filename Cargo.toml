@@ -11,10 +11,11 @@ categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
 [features]
-default = [ "lan87xxa", "kzs8081r" ]
+default = [ "lan8720a", "lan8742a", "kzs8081r" ]
 
 phy = [ ]
-lan87xxa = [ "phy" ]
+lan8720a = [ "phy" ]
+lan8742a = [ "phy" ]
 kzs8081r = [ "phy" ]
 
 [dependencies]

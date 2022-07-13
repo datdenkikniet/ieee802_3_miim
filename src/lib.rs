@@ -290,14 +290,14 @@ pub trait Phy<M: Mii> {
     /// Get the address of this PHY
     fn get_phy_addr(&self) -> u8;
 
-    /// Read a PHY register over SMI
+    /// Read a PHY register over MII
     fn read(&self, address: u8) -> u16 {
         let phy = self.get_phy_addr();
         let mii = self.get_mii();
         mii.read(phy, address)
     }
 
-    /// Write a PHY register over SMI
+    /// Write a PHY register over MII
     fn write(&mut self, address: u8, value: u16) {
         let phy = self.get_phy_addr();
         let mii = self.get_mii_mut();
