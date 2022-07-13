@@ -1,9 +1,11 @@
 [package]
-name = "ieee802_3"
+name = "ieee802_3_mii"
 version = "0.1.0"
 edition = "2021"
 authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
 license-file = "LICENSE"
+description = "An IEEE 802.3 MII trait, providing access to registers defined in the standard and default implementations for common PHYs"
+homepage = "https://github.com/datdenkikniet/ieee802_3_mii"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
