@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 description = "An IEEE 802.3 MII trait, providing access to registers defined in the standard and default implementations for common PHYs"
 homepage = "https://github.com/datdenkikniet/ieee802_3_mii"
 keywords = ["ethernet"]
-categories = ["embedded", "no-std", "ethernet"]
+categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
