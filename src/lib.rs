@@ -113,6 +113,23 @@ impl PhyStatus {
     }
 }
 
+impl From<Bsr> for PhyStatus {
+    fn from(bsr: Bsr) -> Self {
+        PhyStatus {
+            base100_t4: bsr.contains(Bsr::_100BASET4),
+            fd_100base_x: bsr.contains(Bsr::_100BASEXFD),
+            hd_100base_x: bsr.contains(Bsr::_100BASEXHD),
+            fd_10mbps: bsr.contains(Bsr::_10MPBSFD),
+            hd_10mbps: bsr.contains(Bsr::_10MBPSHD),
+            extended_status: bsr.contains(Bsr::EXTENDED_STATUS),
+            unidirectional: bsr.contains(Bsr::UNIDRECTIONAL),
+            preamble_suppression: bsr.contains(Bsr::MF_PREAMBLE_SUPPRESSION),
+            autonegotiation: bsr.contains(Bsr::AUTONEG_ABLE),
+            extended_caps: bsr.contains(Bsr::EXTENDED_CAPABILITIES),
+        }
+    }
+}
+
 /// The extended status register of a PHY.
 ///
 /// This struct describes what extended functions the PHY is capable of.
@@ -257,23 +274,6 @@ impl Default for AutoNegotiationAdvertisement {
     }
 }
 
-macro_rules! flag {
-    ($get_doc: literal, $get:ident, $set_doc: literal, $set:ident, $arg_name:ident) => {
-        #[doc = $get_doc]
-        fn $get(&self) -> bool {
-            self.bcr().$get()
-        }
-
-        #[doc = $set_doc]
-        fn $set(&mut self, $arg_name: bool) {
-            self.modify_bcr(|mut bcr| {
-                bcr.$set($arg_name);
-                bcr
-            });
-        }
-    };
-}
-
 /// An IEEE 802.3 compatible PHY
 pub trait Phy<M: Mii> {
     /// The best advertisement this PHY can send out.
@@ -312,10 +312,10 @@ pub trait Phy<M: Mii> {
     /// Modify the Base Control Register of this PHY
     fn modify_bcr<F>(&mut self, f: F)
     where
-        F: FnOnce(Bcr) -> Bcr,
+        F: FnOnce(&mut Bcr),
     {
-        let bcr = self.bcr();
-        let bcr = f(bcr);
+        let bcr = &mut self.bcr();
+        f(bcr);
         self.write(Bcr::ADDRESS, bcr.bits());
     }
 
@@ -327,9 +327,8 @@ pub trait Phy<M: Mii> {
     /// Reset the PHY. Verify that the reset by checking
     /// [`Self::is_resetting`] == false before continuing usage
     fn reset(&mut self) {
-        self.modify_bcr(|mut bcr| {
+        self.modify_bcr(|bcr| {
             bcr.reset(true);
-            bcr
         });
     }
 
@@ -337,93 +336,6 @@ pub trait Phy<M: Mii> {
     fn blocking_reset(&mut self) {
         self.reset();
         while self.is_resetting() {}
-    }
-
-    flag!(
-        "Check whether this PHY is set to loopback mode.",
-        loopback,
-        "Enable or disable loopback mode for this PHY.",
-        set_loopback,
-        loopback_enabled
-    );
-    flag!(
-        "Check whether autonegotiation is enabled for this PHY.",
-        autonegotiation,
-        "Enable or disable autonegotiation for this PHY.",
-        set_autonegotiation,
-        autonegotiation_enabled
-    );
-    flag!(
-        "Check whether this PHY is in power down mode.",
-        powered_down,
-        "Enable or disable power down mode for this PHY.",
-        set_powered_down,
-        powered_down
-    );
-    flag!(
-        "Check whether this PHY is currently isolated.",
-        isolated,
-        "Enable or disable isolation for this PHY.",
-        set_isolated,
-        isolated
-    );
-
-    /// Restart autonegotiation
-    fn restart_autonegotiation(&mut self) {
-        self.modify_bcr(|mut bcr| {
-            bcr.insert(Bcr::RESTART_AUTONEG);
-            bcr
-        });
-    }
-
-    flag!(
-        "Check whether the collision test signal is currently enabled for this PHY.",
-        collision_test,
-        "Enable or disable the collision test signal for this PHY.",
-        set_collision_test,
-        collision_test
-    );
-    flag!(
-        "Check whether this PHY is currently in unidirectional communication mode.",
-        unidirectional,
-        "Enable or disable unidirectional communication mode for this PHY.",
-        set_unidirectional,
-        unidirectional
-    );
-
-    /// Check what duplex mode this PHY is currently configured for.
-    ///
-    /// This value is ignored by the PHY if autonegotiation is enabled (see [`Self::autonegotiation`]).
-    fn is_full_duplex(&self) -> bool {
-        self.bcr().contains(Bcr::DUPLEX_MODE)
-    }
-
-    /// Configure full duplex mode for this PHY.
-    ///
-    /// This value is ignored by the PHY if autonegotiation is enabled (see [`Self::autonegotiation`]).
-    fn set_full_duplex(&mut self, full_duplex: bool) {
-        self.modify_bcr(|mut bcr| {
-            bcr.set_full_duplex(full_duplex);
-            bcr
-        });
-    }
-
-    /// Get the link speed that this PHY is currently configured for.
-    ///
-    /// This value is ignored by the PHY if autonegotiation is enabled (see [`Self::autonegotiation`]).
-    fn link_speed(&self) -> LinkSpeed {
-        self.bcr().into()
-    }
-
-    /// Configure the link speed for this PHY.
-    ///
-    /// This value is ignored by the PHY if autonegotiation is enabled (see [`Self::autonegotiation`]).
-    fn set_link_speed(&mut self, link_speed: LinkSpeed) {
-        self.modify_bcr(|mut bcr| {
-            bcr.remove(Bcr::SPEED_SEL_MSB | Bcr::SPEED_SEL_LSB);
-            bcr.insert(link_speed.into());
-            bcr
-        });
     }
 
     /// Get the raw value of the Base Status Register of this PHY
@@ -444,7 +356,7 @@ pub trait Phy<M: Mii> {
 
     /// Read the status register for this PHY
     fn status(&self) -> PhyStatus {
-        self.bsr().status()
+        self.bsr().into()
     }
 
     /// Read the ESR for this PHY. Will return `None` if

@@ -106,9 +106,10 @@ impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
             self.mmd_write(3, PHY_REG_WUCSR, 0);
         }
 
-        self.set_autonegotiation(true);
         self.set_autonegotiation_advertisement(self.best_supported_advertisement());
-        self.restart_autonegotiation();
+        self.modify_bcr(|bcr| {
+            bcr.set_autonegotiation(true).restart_autonegotiation();
+        })
     }
 
     /// Get the link speed
