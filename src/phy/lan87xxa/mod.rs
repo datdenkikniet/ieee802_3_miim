@@ -91,17 +91,12 @@ impl From<Interrupt> for InterruptReg {
 pub struct LAN87xxA<M: Mii, const HAS_MMD: bool> {
     phy_addr: u8,
     mii: M,
-    interrupts: [Interrupt; 8],
 }
 
 impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     /// Create a new LAN87XXA based PHY
     pub fn new(mii: M, phy_addr: u8) -> Self {
-        LAN87xxA {
-            mii,
-            phy_addr,
-            interrupts: [Interrupt::LinkDown; 8],
-        }
+        LAN87xxA { mii, phy_addr }
     }
 
     /// Initialize the PHY
@@ -149,15 +144,19 @@ impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     }
 
     /// Read and clear all interrupts
-    pub fn read_and_clear_active_interrupts(&mut self) -> &[Interrupt] {
+    pub fn read_and_clear_active_interrupts(
+        &mut self,
+        interrupt_storage: &mut [Option<Interrupt>; 8],
+    ) {
         let reg_val =
             unsafe { InterruptReg::from_bits_unchecked(self.read(InterruptReg::SOURCE_ADDR)) };
 
         let mut int_idx = 0;
         macro_rules! int {
             ($flag:expr, $int:expr) => {
+                #[allow(unused_assignments)]
                 if reg_val.contains($flag) {
-                    self.interrupts[int_idx] = $int;
+                    interrupt_storage[int_idx] = Some($int);
                     int_idx += 1;
                 }
             };
@@ -186,8 +185,6 @@ impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
 
         #[cfg(feature = "lan8742a")]
         int!(InterruptReg::INT8_WOL, Interrupt::WoL);
-
-        &self.interrupts[..int_idx]
     }
 
     /// Release the underlying [`Mii`]
