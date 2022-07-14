@@ -1,10 +1,11 @@
 #![no_std]
 #![deny(missing_docs)]
 
-//! A crate that provides access to the MIIM interface described
+//! A crate that provides access to the MII interface described
 //! by IEEE standard 802.3
 
 mod mii;
+
 pub use mii::Mii;
 
 mod mmd;
@@ -13,7 +14,8 @@ use mmd::Mmd;
 pub mod registers;
 use registers::*;
 
-pub mod phys;
+#[cfg(feature = "phy")]
+pub mod phy;
 
 /// Link speeds possibly supported by the PHY.
 pub enum LinkSpeed {
@@ -80,6 +82,37 @@ pub struct PhyStatus {
     pub extended_caps: bool,
 }
 
+impl PhyStatus {
+    /// Create the best autonegotiation advertisement that we can.
+    ///
+    /// The returned advertisement will have default values for `selector_field` and `pause`.
+    /// Those fields must be configured manually, or left to their defaults.
+    pub fn best_autoneg_ad(&self) -> AutoNegotiationAdvertisement {
+        let mut ad = AutoNegotiationAdvertisement::default();
+        if self.base100_t4 {
+            ad.base100_t4 = true;
+        }
+
+        if self.fd_100base_x {
+            ad.fd_100base_tx = true;
+        }
+
+        if self.hd_100base_x {
+            ad.hd_100base_tx = true;
+        }
+
+        if self.fd_10mbps {
+            ad.fd_10base_t = true;
+        }
+
+        if self.hd_10mbps {
+            ad.hd_10base_t = true;
+        }
+
+        ad
+    }
+}
+
 /// The extended status register of a PHY.
 ///
 /// This struct describes what extended functions the PHY is capable of.
@@ -101,6 +134,7 @@ pub struct ExtendedPhyStatus {
 /// sent by a PHY.
 ///
 /// In practice, [`SelectorField::Std802_3`] is used almost exclusively.
+#[derive(Debug, Clone, Copy)]
 pub enum SelectorField {
     /// The message is an IEEE Std 802.3 message
     Std802_3,
@@ -110,6 +144,12 @@ pub enum SelectorField {
     Std802_5,
     /// The message is an IEEE Std 1394 message
     Std1394,
+}
+
+impl Default for SelectorField {
+    fn default() -> Self {
+        Self::Std802_3
+    }
 }
 
 impl From<AutoNegCap> for SelectorField {
@@ -140,6 +180,7 @@ impl From<SelectorField> for AutoNegCap {
 }
 
 /// The pause mode supported by this PHY
+#[derive(Debug, Clone, Copy)]
 pub enum Pause {
     /// The PHY supports no PAUSE modes
     NoPause,
@@ -150,6 +191,12 @@ pub enum Pause {
     /// The PHY supports both symmetric pause and asymmetric PAUSE towards
     /// the local device
     SymmetricAndAsymmetricLocal,
+}
+
+impl Default for Pause {
+    fn default() -> Self {
+        Pause::NoPause
+    }
 }
 
 impl From<AutoNegCap> for Pause {
@@ -178,13 +225,8 @@ impl From<Pause> for AutoNegCap {
 }
 
 /// An autonegotiation advertisement.
+#[derive(Debug, Clone, Copy)]
 pub struct AutoNegotiationAdvertisement {
-    /// The PHY is next-page able
-    pub next_page: bool,
-    /// A fault occured on the transmitting PHY
-    pub remote_fault: bool,
-    /// The PHY is extended next-page able
-    pub extended_next_page: bool,
     /// The type of message sent
     pub selector_field: SelectorField,
     /// The PHY supports 10BASE-T
@@ -199,6 +241,20 @@ pub struct AutoNegotiationAdvertisement {
     pub base100_t4: bool,
     /// The pause mode supported by the PHY
     pub pause: Pause,
+}
+
+impl Default for AutoNegotiationAdvertisement {
+    fn default() -> Self {
+        Self {
+            selector_field: Default::default(),
+            hd_10base_t: false,
+            fd_10base_t: false,
+            hd_100base_tx: false,
+            fd_100base_tx: false,
+            base100_t4: false,
+            pause: Default::default(),
+        }
+    }
 }
 
 macro_rules! flag {
@@ -223,29 +279,29 @@ pub trait Phy<M: Mii> {
     /// The best advertisement this PHY can send out.
     ///
     /// "Best", in this case, means largest amount of supported features
-    const BEST_SUPPORTED_ADVERTISEMENT: AutoNegotiationAdvertisement;
+    fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement;
 
-    /// Get a mutable reference to the Media Independent Interface ([`MII`]) for this PHY
-    fn get_smi_mut(&mut self) -> &mut M;
+    /// Get a mutable reference to the Media Independent Interface ([`Mii`]) for this PHY
+    fn get_mii_mut(&mut self) -> &mut M;
 
-    /// Get a reference to the Media Independent Interface ([`MII`]) for this PHY
-    fn get_smi(&self) -> &M;
+    /// Get a reference to the Media Independent Interface ([`Mii`]) for this PHY
+    fn get_mii(&self) -> &M;
 
     /// Get the address of this PHY
     fn get_phy_addr(&self) -> u8;
 
-    /// Read a PHY register over SMI
+    /// Read a PHY register over MII
     fn read(&self, address: u8) -> u16 {
         let phy = self.get_phy_addr();
-        let smi = self.get_smi();
-        smi.read(phy, address)
+        let mii = self.get_mii();
+        mii.read(phy, address)
     }
 
-    /// Write a PHY register over SMI
+    /// Write a PHY register over MII
     fn write(&mut self, address: u8, value: u16) {
         let phy = self.get_phy_addr();
-        let smi = self.get_smi_mut();
-        smi.write(phy, address, value)
+        let mii = self.get_mii_mut();
+        mii.write(phy, address, value)
     }
 
     /// Get the raw value of the Base Control Register of this PHY
@@ -260,19 +316,27 @@ pub trait Phy<M: Mii> {
     {
         let bcr = self.bcr();
         let bcr = f(bcr);
-        let phy = self.get_phy_addr();
-        let smi = self.get_smi_mut();
-        smi.write(phy, Bcr::ADDRESS, bcr.bits())
+        self.write(Bcr::ADDRESS, bcr.bits());
+    }
+
+    /// Check if the PHY is currently resetting
+    fn is_resetting(&self) -> bool {
+        self.bcr().is_resetting()
+    }
+
+    /// Reset the PHY. Verify that the reset by checking
+    /// [`Self::is_resetting`] == false before continuing usage
+    fn reset(&mut self) {
+        self.modify_bcr(|mut bcr| {
+            bcr.reset(true);
+            bcr
+        });
     }
 
     /// Perform a reset, blocking until the reset is completed
     fn blocking_reset(&mut self) {
-        self.modify_bcr(|mut bcr| {
-            bcr.insert(Bcr::RESET);
-            bcr
-        });
-
-        while self.bcr().contains(Bcr::RESET) {}
+        self.reset();
+        while self.is_resetting() {}
     }
 
     flag!(
@@ -388,8 +452,8 @@ pub trait Phy<M: Mii> {
     fn esr(&self) -> Option<Esr> {
         if self.status().extended_status {
             let phy = self.get_phy_addr();
-            let smi = self.get_smi();
-            Some(Esr::from_bits_truncate(smi.read(phy, Esr::ADDRESS)))
+            let mii = self.get_mii();
+            Some(Esr::from_bits_truncate(mii.read(phy, Esr::ADDRESS)))
         } else {
             None
         }
@@ -431,18 +495,6 @@ pub trait Phy<M: Mii> {
 
         let mut ana = AutoNegCap::empty();
 
-        if ad.next_page {
-            ana.insert(AutoNegCap::NEXT_PAGE);
-        }
-
-        if ad.remote_fault {
-            ana.insert(AutoNegCap::REMOTE_FAULT);
-        }
-
-        if ad.extended_next_page {
-            ana.insert(AutoNegCap::EXTENDED_NEXT_PAGE);
-        }
-
         if ad.hd_10base_t && status.hd_10mbps {
             ana.insert(AutoNegCap::_10BASET);
         }
@@ -475,9 +527,6 @@ pub trait Phy<M: Mii> {
         let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::PARTNER_CAP_ADDRESS));
 
         let ad = AutoNegotiationAdvertisement {
-            next_page: ana.contains(AutoNegCap::NEXT_PAGE),
-            remote_fault: ana.contains(AutoNegCap::REMOTE_FAULT),
-            extended_next_page: ana.contains(AutoNegCap::EXTENDED_NEXT_PAGE),
             selector_field: ana.into(),
             hd_10base_t: ana.contains(AutoNegCap::_10BASET),
             fd_10base_t: ana.contains(AutoNegCap::_10BASETFD),
@@ -490,7 +539,7 @@ pub trait Phy<M: Mii> {
         ad
     }
 
-    /// This returns none if `extended_caps` in `Self::status` is `false`
+    /// This returns `None` if `extended_caps` in `Self::status` is `false`
     fn ane(&self) -> Option<Ane> {
         if self.status().extended_caps {
             Some(Ane::from_bits_truncate(self.read(Ane::ADDRESS)))

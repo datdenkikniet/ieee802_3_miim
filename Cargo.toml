@@ -1,16 +1,22 @@
 [package]
 name = "ieee802_3_mii"
-version = "0.2.0-ALPHA1"
+version = "0.3.0-ALPHA1"
 edition = "2021"
 authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
 license = "MIT OR Apache-2.0"
-description = "An IEEE 802.3 MII trait, providing access to registers defined in the standard and default implementations for common PHYs"
+description = "A crate provides abstractions for the IEEE 802.3 Media Indepedent Interface, providing access to registers defined in the standard, and with optional implementations of this abstraction for commonly used PHYs"
 homepage = "https://github.com/datdenkikniet/ieee802_3_mii"
 keywords = ["ethernet"]
-categories = ["embedded", "no-std", "ethernet"]
+categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = [ "lan8720a", "lan8742a", "kzs8081r" ]
+
+phy = [ ]
+lan8720a = [ "phy" ]
+lan8742a = [ "phy" ]
+kzs8081r = [ "phy" ]
 
 [dependencies]
 bitflags = "1.3"
