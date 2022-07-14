@@ -539,7 +539,7 @@ pub trait Phy<M: Mii> {
         ad
     }
 
-    /// This returns none if `extended_caps` in `Self::status` is `false`
+    /// This returns `None` if `extended_caps` in `Self::status` is `false`
     fn ane(&self) -> Option<Ane> {
         if self.status().extended_caps {
             Some(Ane::from_bits_truncate(self.read(Ane::ADDRESS)))
