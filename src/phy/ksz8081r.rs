@@ -2,6 +2,10 @@
 
 use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Miim, Phy};
 
+use self::registers::PhyControl1;
+
+use super::{AdvancedPhySpeed, PhySpeed, PhyWithSpeed};
+
 /// A KSZ8081R
 pub struct Ksz8081r<MIIM: Miim> {
     phy_addr: u8,
@@ -29,6 +33,12 @@ impl<MIIM: Miim> Ksz8081r<MIIM> {
             Self::INTERRUPT_REG,
             Self::INTERRUPT_REG_EN_LINK_UP | Self::INTERRUPT_REG_EN_LINK_DOWN,
         );
+    }
+
+    /// Get the link speed at which the PHY is currently operating
+    pub fn link_speed(&self) -> Option<PhySpeed> {
+        let phy_ctrl1 = PhyControl1::from_bits_truncate(self.read(PhyControl1::ADDRESS));
+        phy_ctrl1.into()
     }
 
     /// Get the value of the interrupt register.
@@ -70,5 +80,54 @@ impl<MIIM: Miim> Phy<MIIM> for Ksz8081r<MIIM> {
 
     fn extended_status(&self) -> Option<ExtendedPhyStatus> {
         None
+    }
+}
+
+impl<MIIM: Miim> PhyWithSpeed<MIIM> for Ksz8081r<MIIM> {
+    fn get_link_speed(&self) -> Option<AdvancedPhySpeed> {
+        self.link_speed().map(Into::into)
+    }
+}
+
+#[allow(missing_docs)]
+pub mod registers {
+    use bitflags::bitflags;
+
+    use crate::phy::PhySpeed;
+
+    bitflags! {
+        pub struct PhyControl1: u16 {
+            const ENABLE_PAUSE = (1 << 9);
+            const LINK_STATUS = (1 << 8);
+            const POLARITY_STATUS = (1 << 7);
+            const MID_MIDX_STATE = (1 << 5);
+            const ENERGY_DETECT = (1 << 4);
+            const PHY_ISOLATE = (1 << 3);
+            const SPEED_10BASET_HD = (0b001 << 0);
+            const SPEED_100BASETX_HD = (0b010 << 0);
+            const SPEED_10BASET_FD = (0b101 << 0);
+            const SPEED_100BASETX_FD = (0b110 << 0);
+        }
+    }
+
+    impl PhyControl1 {
+        pub const ADDRESS: u8 = 0x1E;
+    }
+
+    impl From<PhyControl1> for Option<PhySpeed> {
+        fn from(ctrl: PhyControl1) -> Self {
+            let speed = if ctrl.contains(PhyControl1::SPEED_10BASET_HD) {
+                PhySpeed::HalfDuplexBase10T
+            } else if ctrl.contains(PhyControl1::SPEED_10BASET_FD) {
+                PhySpeed::FullDuplexBase10T
+            } else if ctrl.contains(PhyControl1::SPEED_100BASETX_HD) {
+                PhySpeed::HalfDuplexBase100Tx
+            } else if ctrl.contains(PhyControl1::SPEED_100BASETX_FD) {
+                PhySpeed::FullDuplexBase100Tx
+            } else {
+                return None;
+            };
+            Some(speed)
+        }
     }
 }

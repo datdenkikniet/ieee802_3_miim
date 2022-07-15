@@ -1,50 +1,18 @@
 //! SMSC LAN87xxA (LAN8742A, LAN8720A) Ethernet PHYs
 
-pub mod registers;
-
 use crate::{
-    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Miim, Phy, PhyStatus,
+    phy::lan87xxa::registers::InterruptReg, registers::Esr, AutoNegotiationAdvertisement,
+    ExtendedPhyStatus, Miim, Phy, PhyStatus,
 };
 
-use self::{consts::*, registers::InterruptReg};
-mod consts {
+use self::registers::{Ssr, PHY_REG_WUCSR};
 
-    pub const PHY_REG_SSR: u8 = 0x1F; // Special Status Register
-    pub const PHY_REG_WUCSR: u16 = 0x8010;
-    pub const PHY_REG_SSR_ANDONE: u16 = 1 << 12;
-}
+use super::{AdvancedPhySpeed, PhySpeed, PhyWithSpeed};
 
 /// SMSC LAN8720A Ethernet PHY
 pub type LAN8720A<MIIM> = LAN87xxA<MIIM, false>;
 /// SMSC LAN8742A Ethernet PHY
 pub type LAN8742A<MIIM> = LAN87xxA<MIIM, true>;
-
-/// The link speeds supported by this PHY
-#[derive(Clone, Copy, Debug)]
-#[repr(u8)]
-pub enum LinkSpeed {
-    /// 10BaseT - Half duplex
-    BaseT10HalfDuplex = 0b001,
-    /// 10BaseT - Full duplex
-    BaseT10FullDuplex = 0b101,
-    /// 100BaseT - Half duplex
-    BaseT100HalfDuplex = 0b010,
-    /// 100BaseT - Full duplex
-    BaseT100FullDuplex = 0b110,
-}
-
-impl LinkSpeed {
-    fn from_u8(val: u8) -> Option<Self> {
-        let speed = match val {
-            0b001 => LinkSpeed::BaseT10HalfDuplex,
-            0b101 => LinkSpeed::BaseT10FullDuplex,
-            0b010 => LinkSpeed::BaseT100HalfDuplex,
-            0b110 => LinkSpeed::BaseT100FullDuplex,
-            _ => return None,
-        };
-        Some(speed)
-    }
-}
 
 /// All interrupt sources supported by this chip
 #[derive(Debug, Clone, Copy)]
@@ -118,19 +86,18 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     ///
     /// If this returns `None`, some sort of corruption occured, or the PHY is
     /// in an illegal state
-    pub fn link_speed(&mut self) -> Option<LinkSpeed> {
-        let link_data = self.read(PHY_REG_SSR);
-        let link_data = ((link_data >> 2) & 0b111) as u8;
-        LinkSpeed::from_u8(link_data)
+    pub fn link_speed(&self) -> PhySpeed {
+        let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
+        ssr.into()
     }
 
     /// Check if the link is up
     pub fn link_established(&mut self) -> bool {
         let bsr = self.bsr();
-        let ssr = self.read(PHY_REG_SSR);
+        let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
 
         // Link established only if it's up, and autonegotiation is completed
-        !(!bsr.phy_link_up() || !bsr.autoneg_completed() || ssr & PHY_REG_SSR_ANDONE == 0)
+        !(!bsr.phy_link_up() || !bsr.autoneg_completed() || ssr.contains(Ssr::AUTONEG_DONE))
     }
 
     /// Block until a link is established
@@ -241,5 +208,69 @@ impl<M: Miim, const E: bool> Phy<M> for LAN87xxA<M, E> {
 
     fn extended_status(&self) -> Option<ExtendedPhyStatus> {
         None
+    }
+}
+
+impl<M: Miim, const E: bool> PhyWithSpeed<M> for LAN87xxA<M, E> {
+    fn get_link_speed(&self) -> Option<AdvancedPhySpeed> {
+        Some(self.link_speed().into())
+    }
+}
+
+pub mod registers {
+    #![allow(missing_docs)]
+    //! LAN87xxA registers
+
+    use bitflags::bitflags;
+
+    use crate::phy::PhySpeed;
+
+    pub const PHY_REG_WUCSR: u16 = 0x8010;
+
+    bitflags! {
+        pub struct InterruptReg: u16 {
+            const INT1_AUTO_NEG_PAGE_RECVD = (1 << 1);
+            const INT2_PARALLELL_DETECTION_FAULT = (1 << 2);
+            const INT3_AUTO_NEG_LP_ACK = (1 << 3);
+            const INT4_LINK_DOWN = (1 << 4);
+            const INT5_REMOTE_FAULT = (1 << 5);
+            const INT6_AUTO_NEG_COMPLETE = (1 << 6);
+            const INT7_ENERGYON = (1 << 7);
+            #[cfg(feature = "lan8742a")]
+            const INT8_WOL = (1 << 8);
+        }
+
+        pub struct Ssr: u16 {
+            const AUTONEG_DONE = (1 << 12);
+            const SPEED_10BASET_HD = (0b001 << 2);
+            const SPEED_10BASET_FD = (0b101 << 2);
+            const SPEED_100BASET_FD = (0b010 << 2);
+            const SPEED_100BASET_HD = (0b110 << 2);
+        }
+    }
+
+    impl InterruptReg {
+        pub const SOURCE_ADDR: u8 = 29;
+        pub const MASK_ADDR: u8 = 30;
+    }
+
+    impl Ssr {
+        pub const ADDRESS: u8 = 31;
+    }
+
+    impl From<Ssr> for PhySpeed {
+        fn from(ssr: Ssr) -> Self {
+            if ssr.contains(Ssr::SPEED_10BASET_HD) {
+                Self::HalfDuplexBase10T
+            } else if ssr.contains(Ssr::SPEED_10BASET_FD) {
+                Self::FullDuplexBase10T
+            } else if ssr.contains(Ssr::SPEED_100BASET_HD) {
+                Self::HalfDuplexBase100Tx
+            } else if ssr.contains(Ssr::SPEED_100BASET_FD) {
+                Self::FullDuplexBase100Tx
+            } else {
+                panic!("Illegal speed value")
+            }
+        }
     }
 }

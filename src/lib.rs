@@ -476,20 +476,3 @@ pub trait Phy<M: Miim> {
         Mmd::write(self, device_address, reg_address, reg_value)
     }
 }
-
-#[derive(Debug, Clone, Copy)]
-#[allow(missing_docs)]
-pub enum AdvancedLinkSpeed {
-    HalfDuplexBase10T,
-    FullDuplexBase10T,
-    HalfDuplexBase100Tx,
-    FullDuplexBase100Tx,
-    HalfDuplexBase1000T,
-    FullDuplexBase1000T,
-    HalfDuplexBase1000Tx,
-    FullDuplexBase1000Tx,
-}
-
-/// A PHY that also supports determining the linnk speed and duplex mode
-/// it is currently operating at
-pub trait PhyWithSpeed<MIIM: Miim>: Phy<MIIM> {}
