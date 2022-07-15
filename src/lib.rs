@@ -1,12 +1,12 @@
 #![no_std]
 #![deny(missing_docs)]
 
-//! A crate that provides access to the MII interface described
+//! A crate that provides access to the MIIM interface described
 //! by IEEE standard 802.3
 
-mod mii;
+mod miim;
 
-pub use mii::Mii;
+pub use miim::Miim;
 
 mod mmd;
 use mmd::Mmd;
@@ -17,7 +17,7 @@ use registers::*;
 #[cfg(feature = "phy")]
 pub mod phy;
 
-/// Link speeds possibly supported by the PHY.
+/// All basic link speeds possibly supported by the PHY.
 pub enum LinkSpeed {
     /// 1000 Mbps
     Mpbs1000,
@@ -275,33 +275,33 @@ impl Default for AutoNegotiationAdvertisement {
 }
 
 /// An IEEE 802.3 compatible PHY
-pub trait Phy<M: Mii> {
+pub trait Phy<M: Miim> {
     /// The best advertisement this PHY can send out.
     ///
     /// "Best", in this case, means largest amount of supported features
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement;
 
-    /// Get a mutable reference to the Media Independent Interface ([`Mii`]) for this PHY
+    /// Get a mutable reference to the Media Independent Interface ([`Miim`]) for this PHY
     fn get_mii_mut(&mut self) -> &mut M;
 
-    /// Get a reference to the Media Independent Interface ([`Mii`]) for this PHY
-    fn get_mii(&self) -> &M;
+    /// Get a reference to the Media Independent Interface ([`Miim`]) for this PHY
+    fn get_miim(&self) -> &M;
 
     /// Get the address of this PHY
     fn get_phy_addr(&self) -> u8;
 
-    /// Read a PHY register over MII
+    /// Read a PHY register over MIIM
     fn read(&self, address: u8) -> u16 {
         let phy = self.get_phy_addr();
-        let mii = self.get_mii();
-        mii.read(phy, address)
+        let miim = self.get_miim();
+        miim.read(phy, address)
     }
 
-    /// Write a PHY register over MII
+    /// Write a PHY register over MIIM
     fn write(&mut self, address: u8, value: u16) {
         let phy = self.get_phy_addr();
-        let mii = self.get_mii_mut();
-        mii.write(phy, address, value)
+        let miim = self.get_mii_mut();
+        miim.write(phy, address, value)
     }
 
     /// Get the raw value of the Base Control Register of this PHY
@@ -364,8 +364,8 @@ pub trait Phy<M: Mii> {
     fn esr(&self) -> Option<Esr> {
         if self.status().extended_status {
             let phy = self.get_phy_addr();
-            let mii = self.get_mii();
-            Some(Esr::from_bits_truncate(mii.read(phy, Esr::ADDRESS)))
+            let miim = self.get_miim();
+            Some(Esr::from_bits_truncate(miim.read(phy, Esr::ADDRESS)))
         } else {
             None
         }
@@ -476,3 +476,20 @@ pub trait Phy<M: Mii> {
         Mmd::write(self, device_address, reg_address, reg_value)
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub enum AdvancedLinkSpeed {
+    HalfDuplexBase10T,
+    FullDuplexBase10T,
+    HalfDuplexBase100Tx,
+    FullDuplexBase100Tx,
+    HalfDuplexBase1000T,
+    FullDuplexBase1000T,
+    HalfDuplexBase1000Tx,
+    FullDuplexBase1000Tx,
+}
+
+/// A PHY that also supports determining the linnk speed and duplex mode
+/// it is currently operating at
+pub trait PhyWithSpeed<MIIM: Miim>: Phy<MIIM> {}

@@ -2,7 +2,7 @@
 
 use bitflags::bitflags;
 
-use crate::{Mii, Phy};
+use crate::{Miim, Phy};
 
 bitflags! {
     // Register 13
@@ -38,7 +38,7 @@ impl MmdAddress {
 pub struct Mmd;
 
 impl Mmd {
-    pub fn read<M: Mii, P: Phy<M>>(phy: &mut P, device_address: u8, reg_address: u16) -> u16 {
+    pub fn read<M: Miim, P: Phy<M>>(phy: &mut P, device_address: u8, reg_address: u16) -> u16 {
         let mut mmd_address = MmdAddress::device_address(device_address);
         phy.write(MmdAddress::CONTROL_ADDRESS, mmd_address.bits());
         phy.write(MmdAddress::DATA_ADRESS_ADDRESS, reg_address);
@@ -49,7 +49,7 @@ impl Mmd {
         phy.read(MmdAddress::DATA_ADRESS_ADDRESS)
     }
 
-    pub fn write<M: Mii, P: Phy<M>>(
+    pub fn write<M: Miim, P: Phy<M>>(
         phy: &mut P,
         device_address: u8,
         reg_address: u16,

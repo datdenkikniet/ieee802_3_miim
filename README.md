@@ -1,10 +1,10 @@
-# IEEE 802.3 Media Independent Interface
+# IEEE 802.3 Media Independent Interface Management
 
-A crate traits for accessing the Media Independent Interface on IEEE 802.3 PHYs.
+A crate traits for accessing the Media Independent Interface Management on IEEE 802.3 PHYs.
 
-## What is Media Independent Interface?
+## What is Media Independent Interface Management?
 
-The MII (Media Independent Interface) is a standard interface that is part of the IEEE 802.3 standard.
+MIIM (Media Independent Interface Management) is a standard interface that is part of the IEEE 802.3 standard.
 
 It is used to communicate with IEEE 802.3 PHYs. In it's most cut-down form, it provides basic configuration and status access. Extended features
 include autonegotiation configuration, custom on-chip register access through MMD, and extended status information.

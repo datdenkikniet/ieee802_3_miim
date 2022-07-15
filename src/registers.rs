@@ -1,6 +1,6 @@
-//! This module contains definitions of all MII registers
+//! This module contains definitions of all MIIM registers
 
-use crate::{Mii, Phy};
+use crate::{Miim, Phy};
 
 pub use regs::*;
 #[allow(missing_docs)]
@@ -303,7 +303,7 @@ impl NextPage {
     /// Create a new next page, using the provided Auto-Negotiation Expansion register to
     /// determine the location of the next page, falling back to `default_next_page` if none
     /// is available.
-    pub fn new<M: Mii, P: Phy<M>>(ane: Ane, default_next_page: u8, phy: &mut P) -> Self {
+    pub fn new<M: Miim, P: Phy<M>>(ane: Ane, default_next_page: u8, phy: &mut P) -> Self {
         let next_page = ane.next_page_location(default_next_page);
         let next_page = phy.read(next_page);
 

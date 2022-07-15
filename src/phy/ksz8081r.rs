@@ -1,14 +1,14 @@
 //! Phy implementation for the Microchip KSZ8081R
 
-use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Phy};
+use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Miim, Phy};
 
 /// A KSZ8081R
-pub struct Ksz8081r<MII: Mii> {
+pub struct Ksz8081r<MIIM: Miim> {
     phy_addr: u8,
-    mii: MII,
+    miim: MIIM,
 }
 
-impl<MII: Mii> Ksz8081r<MII> {
+impl<MIIM: Miim> Ksz8081r<MIIM> {
     const INTERRUPT_REG: u8 = 0x1B;
     const INTERRUPT_REG_EN_LINK_UP: u16 = 1 << 8;
     const INTERRUPT_REG_EN_LINK_DOWN: u16 = 1 << 10;
@@ -18,9 +18,9 @@ impl<MII: Mii> Ksz8081r<MII> {
     /// A mask for determining if the Link Down Interrupt occurred
     pub const INTERRUPT_REG_INT_LINK_DOWN: u16 = 1 << 2;
 
-    /// Create a new Ksz8081r at `phy_addr`, backed by the given `mii`,
-    pub fn new(phy_addr: u8, mii: MII) -> Self {
-        Self { phy_addr, mii }
+    /// Create a new Ksz8081r at `phy_addr`, backed by the given `miim`,
+    pub fn new(phy_addr: u8, miim: MIIM) -> Self {
+        Self { phy_addr, miim }
     }
 
     /// Enable the link up and link down interrupts
@@ -40,7 +40,7 @@ impl<MII: Mii> Ksz8081r<MII> {
     }
 }
 
-impl<MII: Mii> Phy<MII> for Ksz8081r<MII> {
+impl<MIIM: Miim> Phy<MIIM> for Ksz8081r<MIIM> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
             hd_10base_t: true,
@@ -52,12 +52,12 @@ impl<MII: Mii> Phy<MII> for Ksz8081r<MII> {
         }
     }
 
-    fn get_mii_mut(&mut self) -> &mut MII {
-        &mut self.mii
+    fn get_mii_mut(&mut self) -> &mut MIIM {
+        &mut self.miim
     }
 
-    fn get_mii(&self) -> &MII {
-        &self.mii
+    fn get_miim(&self) -> &MIIM {
+        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {

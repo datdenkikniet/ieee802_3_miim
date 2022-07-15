@@ -2,7 +2,9 @@
 
 pub mod registers;
 
-use crate::{registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Mii, Phy, PhyStatus};
+use crate::{
+    registers::Esr, AutoNegotiationAdvertisement, ExtendedPhyStatus, Miim, Phy, PhyStatus,
+};
 
 use self::{consts::*, registers::InterruptReg};
 mod consts {
@@ -13,9 +15,9 @@ mod consts {
 }
 
 /// SMSC LAN8720A Ethernet PHY
-pub type LAN8720A<MII> = LAN87xxA<MII, false>;
+pub type LAN8720A<MIIM> = LAN87xxA<MIIM, false>;
 /// SMSC LAN8742A Ethernet PHY
-pub type LAN8742A<MII> = LAN87xxA<MII, true>;
+pub type LAN8742A<MIIM> = LAN87xxA<MIIM, true>;
 
 /// The link speeds supported by this PHY
 #[derive(Clone, Copy, Debug)]
@@ -88,15 +90,15 @@ impl From<Interrupt> for InterruptReg {
 /// in extended registers should be cleared
 ///
 /// This type should not be used directly. Use [`LAN8720A`] or [`LAN8742A`] instead.
-pub struct LAN87xxA<M: Mii, const HAS_MMD: bool> {
+pub struct LAN87xxA<M: Miim, const HAS_MMD: bool> {
     phy_addr: u8,
-    mii: M,
+    miim: M,
 }
 
-impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
+impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     /// Create a new LAN87XXA based PHY
-    pub fn new(mii: M, phy_addr: u8) -> Self {
-        LAN87xxA { mii, phy_addr }
+    pub fn new(miim: M, phy_addr: u8) -> Self {
+        LAN87xxA { miim, phy_addr }
     }
 
     /// Initialize the PHY
@@ -188,13 +190,13 @@ impl<M: Mii, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
         int!(InterruptReg::INT8_WOL, Interrupt::WoL);
     }
 
-    /// Release the underlying [`Mii`]
+    /// Release the underlying [`Miim`]
     pub fn release(self) -> M {
-        self.mii
+        self.miim
     }
 }
 
-impl<M: Mii, const E: bool> Phy<M> for LAN87xxA<M, E> {
+impl<M: Miim, const E: bool> Phy<M> for LAN87xxA<M, E> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
             hd_10base_t: true,
@@ -207,11 +209,11 @@ impl<M: Mii, const E: bool> Phy<M> for LAN87xxA<M, E> {
     }
 
     fn get_mii_mut(&mut self) -> &mut M {
-        &mut self.mii
+        &mut self.miim
     }
 
-    fn get_mii(&self) -> &M {
-        &self.mii
+    fn get_miim(&self) -> &M {
+        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {

@@ -1,4 +1,4 @@
-//! Implementations of MII for existing PHYs
+//! Implementations of MIIM for existing PHYs
 
 #[cfg(any(feature = "lan8720a", feature = "lan8742a"))]
 pub mod lan87xxa;

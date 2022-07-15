@@ -1,11 +1,11 @@
 [package]
-name = "ieee802_3_mii"
+name = "ieee802_3_miim"
 version = "0.3.0-ALPHA1"
 edition = "2021"
 authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "A crate provides abstractions for the IEEE 802.3 Media Indepedent Interface, providing access to registers defined in the standard, and with optional implementations of this abstraction for commonly used PHYs"
-homepage = "https://github.com/datdenkikniet/ieee802_3_mii"
+homepage = "https://github.com/datdenkikniet/ieee802_3_miim"
 keywords = ["ethernet"]
 categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"

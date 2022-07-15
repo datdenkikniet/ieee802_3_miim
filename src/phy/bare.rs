@@ -1,31 +1,31 @@
 //! A bare phy that does not have any compile-time configurations
 //! assigned to it.
 
-use crate::{AutoNegotiationAdvertisement, Mii, Pause, Phy};
+use crate::{AutoNegotiationAdvertisement, Miim, Pause, Phy};
 
 /// A base phy
-pub struct BarePhy<MII>
+pub struct BarePhy<MIIM>
 where
-    MII: Mii,
+    MIIM: Miim,
 {
     phy_address: u8,
-    mii: MII,
+    miim: MIIM,
     best_supported_advertisement: AutoNegotiationAdvertisement,
 }
 
-impl<MII> BarePhy<MII>
+impl<MIIM> BarePhy<MIIM>
 where
-    MII: Mii,
+    MIIM: Miim,
 {
-    /// Create a new bare PHY with the given MII, at the given PHY address, using
+    /// Create a new bare PHY with the given MIIM, at the given PHY address, using
     /// `pause` as the advertised pause mode.
     ///
     /// The PHY will calculate it's best supported advertisement on the fly from
-    /// details acquired through `mii`.
-    pub fn new(mii: MII, phy_address: u8, pause: Pause) -> Self {
+    /// details acquired through `miim`.
+    pub fn new(miim: MIIM, phy_address: u8, pause: Pause) -> Self {
         let mut me = Self {
             phy_address,
-            mii,
+            miim,
             best_supported_advertisement: Default::default(),
         };
 
@@ -36,26 +36,26 @@ where
         me
     }
 
-    /// Release the underlying MII
-    pub fn release(self) -> MII {
-        self.mii
+    /// Release the underlying MIIM
+    pub fn release(self) -> MIIM {
+        self.miim
     }
 }
 
-impl<MII> Phy<MII> for BarePhy<MII>
+impl<MIIM> Phy<MIIM> for BarePhy<MIIM>
 where
-    MII: Mii,
+    MIIM: Miim,
 {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         self.best_supported_advertisement
     }
 
-    fn get_mii_mut(&mut self) -> &mut MII {
-        &mut self.mii
+    fn get_mii_mut(&mut self) -> &mut MIIM {
+        &mut self.miim
     }
 
-    fn get_mii(&self) -> &MII {
-        &self.mii
+    fn get_miim(&self) -> &MIIM {
+        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {

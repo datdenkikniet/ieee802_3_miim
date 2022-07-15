@@ -3,7 +3,7 @@
 
 /// A trait used for implementing access to the Media Indepedent
 /// Interface of an IEEE 802.3 compatible PHY.
-pub trait Mii {
+pub trait Miim {
     /// Read an MII register
     fn read(&self, phy: u8, reg: u8) -> u16;
     /// Write an MII register
