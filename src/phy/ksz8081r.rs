@@ -7,12 +7,12 @@ use self::registers::PhyControl1;
 use super::{AdvancedPhySpeed, PhySpeed, PhyWithSpeed};
 
 /// A KSZ8081R
-pub struct Ksz8081r<MIIM: Miim> {
+pub struct KSZ8081R<MIIM: Miim> {
     phy_addr: u8,
     miim: MIIM,
 }
 
-impl<MIIM: Miim> Ksz8081r<MIIM> {
+impl<MIIM: Miim> KSZ8081R<MIIM> {
     const INTERRUPT_REG: u8 = 0x1B;
     const INTERRUPT_REG_EN_LINK_UP: u16 = 1 << 8;
     const INTERRUPT_REG_EN_LINK_DOWN: u16 = 1 << 10;
@@ -23,7 +23,7 @@ impl<MIIM: Miim> Ksz8081r<MIIM> {
     pub const INTERRUPT_REG_INT_LINK_DOWN: u16 = 1 << 2;
 
     /// Create a new Ksz8081r at `phy_addr`, backed by the given `miim`,
-    pub fn new(phy_addr: u8, miim: MIIM) -> Self {
+    pub fn new(miim: MIIM, phy_addr: u8) -> Self {
         Self { phy_addr, miim }
     }
 
@@ -50,7 +50,7 @@ impl<MIIM: Miim> Ksz8081r<MIIM> {
     }
 }
 
-impl<MIIM: Miim> Phy<MIIM> for Ksz8081r<MIIM> {
+impl<MIIM: Miim> Phy<MIIM> for KSZ8081R<MIIM> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
         AutoNegotiationAdvertisement {
             hd_10base_t: true,
@@ -83,7 +83,7 @@ impl<MIIM: Miim> Phy<MIIM> for Ksz8081r<MIIM> {
     }
 }
 
-impl<MIIM: Miim> PhyWithSpeed<MIIM> for Ksz8081r<MIIM> {
+impl<MIIM: Miim> PhyWithSpeed<MIIM> for KSZ8081R<MIIM> {
     fn get_link_speed(&self) -> Option<AdvancedPhySpeed> {
         self.link_speed().map(Into::into)
     }
