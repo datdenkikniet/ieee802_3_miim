@@ -238,10 +238,9 @@ pub mod registers {
 
         pub struct Ssr: u16 {
             const AUTONEG_DONE = (1 << 12);
-            const SPEED_10BASET_HD = (0b001 << 2);
-            const SPEED_10BASET_FD = (0b101 << 2);
-            const SPEED_100BASET_FD = (0b010 << 2);
-            const SPEED_100BASET_HD = (0b110 << 2);
+            const FULL_DUPLEX = (0b1 << 4);
+            const MBIT100 = (0b1 << 3);
+            const MBIT10 = (0b1 << 2);
         }
     }
 
@@ -256,17 +255,28 @@ pub mod registers {
 
     impl From<Ssr> for Option<PhySpeed> {
         fn from(ssr: Ssr) -> Self {
-            let speed = if ssr.contains(Ssr::SPEED_10BASET_HD) {
-                PhySpeed::HalfDuplexBase10T
-            } else if ssr.contains(Ssr::SPEED_10BASET_FD) {
-                PhySpeed::FullDuplexBase10T
-            } else if ssr.contains(Ssr::SPEED_100BASET_HD) {
-                PhySpeed::HalfDuplexBase100Tx
-            } else if ssr.contains(Ssr::SPEED_100BASET_FD) {
-                PhySpeed::FullDuplexBase100Tx
+            let full_duplex = ssr.contains(Ssr::FULL_DUPLEX);
+            let mbit_10 = ssr.contains(Ssr::MBIT10);
+            let mbit_100 = ssr.contains(Ssr::MBIT100);
+
+            let speed = if full_duplex {
+                if mbit_10 {
+                    PhySpeed::FullDuplexBase10T
+                } else if mbit_100 {
+                    PhySpeed::FullDuplexBase100Tx
+                } else {
+                    return None;
+                }
             } else {
-                return None;
+                if mbit_10 {
+                    PhySpeed::HalfDuplexBase10T
+                } else if mbit_100 {
+                    PhySpeed::HalfDuplexBase100Tx
+                } else {
+                    return None;
+                }
             };
+
             Some(speed)
         }
     }
