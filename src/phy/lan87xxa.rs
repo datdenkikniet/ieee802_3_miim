@@ -86,7 +86,7 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     ///
     /// If this returns `None`, some sort of corruption occured, or the PHY is
     /// in an illegal state
-    pub fn link_speed(&mut self) -> PhySpeed {
+    pub fn link_speed(&mut self) -> Option<PhySpeed> {
         let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
         ssr.into()
     }
@@ -209,7 +209,7 @@ impl<M: Miim, const E: bool> Phy<M> for LAN87xxA<M, E> {
 
 impl<M: Miim, const E: bool> PhyWithSpeed<M> for LAN87xxA<M, E> {
     fn get_link_speed(&mut self) -> Option<AdvancedPhySpeed> {
-        Some(self.link_speed().into())
+        self.link_speed().map(Into::into)
     }
 }
 
@@ -254,19 +254,20 @@ pub mod registers {
         pub const ADDRESS: u8 = 31;
     }
 
-    impl From<Ssr> for PhySpeed {
+    impl From<Ssr> for Option<PhySpeed> {
         fn from(ssr: Ssr) -> Self {
-            if ssr.contains(Ssr::SPEED_10BASET_HD) {
-                Self::HalfDuplexBase10T
+            let speed = if ssr.contains(Ssr::SPEED_10BASET_HD) {
+                PhySpeed::HalfDuplexBase10T
             } else if ssr.contains(Ssr::SPEED_10BASET_FD) {
-                Self::FullDuplexBase10T
+                PhySpeed::FullDuplexBase10T
             } else if ssr.contains(Ssr::SPEED_100BASET_HD) {
-                Self::HalfDuplexBase100Tx
+                PhySpeed::HalfDuplexBase100Tx
             } else if ssr.contains(Ssr::SPEED_100BASET_FD) {
-                Self::FullDuplexBase100Tx
+                PhySpeed::FullDuplexBase100Tx
             } else {
-                panic!("Illegal speed value")
-            }
+                return None;
+            };
+            Some(speed)
         }
     }
 }
