@@ -36,7 +36,7 @@ impl<MIIM: Miim> KSZ8081R<MIIM> {
     }
 
     /// Get the link speed at which the PHY is currently operating
-    pub fn link_speed(&self) -> Option<PhySpeed> {
+    pub fn link_speed(&mut self) -> Option<PhySpeed> {
         let phy_ctrl1 = PhyControl1::from_bits_truncate(self.read(PhyControl1::ADDRESS));
         phy_ctrl1.into()
     }
@@ -45,8 +45,13 @@ impl<MIIM: Miim> KSZ8081R<MIIM> {
     ///
     /// Use [`Self::INTERRUPT_REG_INT_LINK_UP`] and [`Self::INTERRUPT_REG_INT_LINK_DOWN`]
     /// to determine the type of interrupt that occurred
-    pub fn get_interrupt_reg_val(&self) -> u16 {
+    pub fn get_interrupt_reg_val(&mut self) -> u16 {
         self.read(Self::INTERRUPT_REG)
+    }
+
+    /// Check whether a link is established or not
+    pub fn link_established(&mut self) -> bool {
+        self.autoneg_completed() && self.phy_link_up()
     }
 }
 
@@ -62,29 +67,25 @@ impl<MIIM: Miim> Phy<MIIM> for KSZ8081R<MIIM> {
         }
     }
 
-    fn get_mii_mut(&mut self) -> &mut MIIM {
+    fn get_miim(&mut self) -> &mut MIIM {
         &mut self.miim
-    }
-
-    fn get_miim(&self) -> &MIIM {
-        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {
         self.phy_addr
     }
 
-    fn esr(&self) -> Option<Esr> {
+    fn esr(&mut self) -> Option<Esr> {
         None
     }
 
-    fn extended_status(&self) -> Option<ExtendedPhyStatus> {
+    fn extended_status(&mut self) -> Option<ExtendedPhyStatus> {
         None
     }
 }
 
 impl<MIIM: Miim> PhyWithSpeed<MIIM> for KSZ8081R<MIIM> {
-    fn get_link_speed(&self) -> Option<AdvancedPhySpeed> {
+    fn get_link_speed(&mut self) -> Option<AdvancedPhySpeed> {
         self.link_speed().map(Into::into)
     }
 }

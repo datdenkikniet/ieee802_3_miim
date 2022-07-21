@@ -50,12 +50,8 @@ where
         self.best_supported_advertisement
     }
 
-    fn get_mii_mut(&mut self) -> &mut MIIM {
+    fn get_miim(&mut self) -> &mut MIIM {
         &mut self.miim
-    }
-
-    fn get_miim(&self) -> &MIIM {
-        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {

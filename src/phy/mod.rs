@@ -54,5 +54,5 @@ impl From<PhySpeed> for AdvancedPhySpeed {
 pub trait PhyWithSpeed<MIIM: Miim>: Phy<MIIM> {
     /// Get the link speed at which this PHY is currently
     /// operating.
-    fn get_link_speed(&self) -> Option<AdvancedPhySpeed>;
+    fn get_link_speed(&mut self) -> Option<AdvancedPhySpeed>;
 }

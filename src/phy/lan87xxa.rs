@@ -86,7 +86,7 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     ///
     /// If this returns `None`, some sort of corruption occured, or the PHY is
     /// in an illegal state
-    pub fn link_speed(&self) -> PhySpeed {
+    pub fn link_speed(&mut self) -> PhySpeed {
         let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
         ssr.into()
     }
@@ -175,19 +175,15 @@ impl<M: Miim, const E: bool> Phy<M> for LAN87xxA<M, E> {
         }
     }
 
-    fn get_mii_mut(&mut self) -> &mut M {
+    fn get_miim(&mut self) -> &mut M {
         &mut self.miim
-    }
-
-    fn get_miim(&self) -> &M {
-        &self.miim
     }
 
     fn get_phy_addr(&self) -> u8 {
         self.phy_addr
     }
 
-    fn status(&self) -> PhyStatus {
+    fn status(&mut self) -> PhyStatus {
         crate::PhyStatus {
             base100_t4: false,
             fd_100base_x: true,
@@ -202,17 +198,17 @@ impl<M: Miim, const E: bool> Phy<M> for LAN87xxA<M, E> {
         }
     }
 
-    fn esr(&self) -> Option<Esr> {
+    fn esr(&mut self) -> Option<Esr> {
         None
     }
 
-    fn extended_status(&self) -> Option<ExtendedPhyStatus> {
+    fn extended_status(&mut self) -> Option<ExtendedPhyStatus> {
         None
     }
 }
 
 impl<M: Miim, const E: bool> PhyWithSpeed<M> for LAN87xxA<M, E> {
-    fn get_link_speed(&self) -> Option<AdvancedPhySpeed> {
+    fn get_link_speed(&mut self) -> Option<AdvancedPhySpeed> {
         Some(self.link_speed().into())
     }
 }

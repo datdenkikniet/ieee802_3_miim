@@ -282,16 +282,13 @@ pub trait Phy<M: Miim> {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement;
 
     /// Get a mutable reference to the Media Independent Interface ([`Miim`]) for this PHY
-    fn get_mii_mut(&mut self) -> &mut M;
-
-    /// Get a reference to the Media Independent Interface ([`Miim`]) for this PHY
-    fn get_miim(&self) -> &M;
+    fn get_miim(&mut self) -> &mut M;
 
     /// Get the address of this PHY
     fn get_phy_addr(&self) -> u8;
 
     /// Read a PHY register over MIIM
-    fn read(&self, address: u8) -> u16 {
+    fn read(&mut self, address: u8) -> u16 {
         let phy = self.get_phy_addr();
         let miim = self.get_miim();
         miim.read(phy, address)
@@ -300,12 +297,12 @@ pub trait Phy<M: Miim> {
     /// Write a PHY register over MIIM
     fn write(&mut self, address: u8, value: u16) {
         let phy = self.get_phy_addr();
-        let miim = self.get_mii_mut();
+        let miim = self.get_miim();
         miim.write(phy, address, value)
     }
 
     /// Get the raw value of the Base Control Register of this PHY
-    fn bcr(&self) -> Bcr {
+    fn bcr(&mut self) -> Bcr {
         Bcr::from_bits_truncate(self.read(Bcr::ADDRESS))
     }
 
@@ -320,7 +317,7 @@ pub trait Phy<M: Miim> {
     }
 
     /// Check if the PHY is currently resetting
-    fn is_resetting(&self) -> bool {
+    fn is_resetting(&mut self) -> bool {
         self.bcr().is_resetting()
     }
 
@@ -339,29 +336,29 @@ pub trait Phy<M: Miim> {
     }
 
     /// Get the raw value of the Base Status Register of this PHY
-    fn bsr(&self) -> Bsr {
+    fn bsr(&mut self) -> Bsr {
         Bsr::from_bits_truncate(self.read(Bsr::ADDRESS))
     }
 
     /// Check if the PHY reports its link as being up
-    fn phy_link_up(&self) -> bool {
+    fn phy_link_up(&mut self) -> bool {
         self.bsr().phy_link_up()
     }
 
     /// Check if the PHY reports its autonegotiation process
     /// as having completed
-    fn autoneg_completed(&self) -> bool {
+    fn autoneg_completed(&mut self) -> bool {
         self.bsr().autoneg_completed()
     }
 
     /// Read the status register for this PHY
-    fn status(&self) -> PhyStatus {
+    fn status(&mut self) -> PhyStatus {
         self.bsr().into()
     }
 
     /// Read the ESR for this PHY. Will return `None` if
     /// `extended_status` in [`Self::status`] is false.
-    fn esr(&self) -> Option<Esr> {
+    fn esr(&mut self) -> Option<Esr> {
         if self.status().extended_status {
             let phy = self.get_phy_addr();
             let miim = self.get_miim();
@@ -374,7 +371,7 @@ pub trait Phy<M: Miim> {
     /// Read the Extended Status Register for this PHY.
     ///
     /// Returns `None` if `extended_status` in [`Self::status`] is false.
-    fn extended_status(&self) -> Option<ExtendedPhyStatus> {
+    fn extended_status(&mut self) -> Option<ExtendedPhyStatus> {
         self.esr().map(|esr| ExtendedPhyStatus {
             fd_1000base_x: esr.contains(Esr::_1000BASEXFD),
             hd_1000base_x: esr.contains(Esr::_1000BASEXHD),
@@ -386,7 +383,7 @@ pub trait Phy<M: Miim> {
     /// Read the PHY identifier for this PHY.
     ///
     /// Returns `None` if `extended_capabilities` in [`Self::status`] is false
-    fn phy_ident(&self) -> Option<u32> {
+    fn phy_ident(&mut self) -> Option<u32> {
         if self.status().extended_caps {
             let msb = self.read(2) as u32;
             let lsb = self.read(3) as u32;
@@ -435,7 +432,7 @@ pub trait Phy<M: Miim> {
     }
 
     /// Get the capabilites of the autonegotiation partner of this PHY
-    fn get_autonegotiation_partner_caps(&self) -> AutoNegotiationAdvertisement {
+    fn get_autonegotiation_partner_caps(&mut self) -> AutoNegotiationAdvertisement {
         let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::PARTNER_CAP_ADDRESS));
 
         let ad = AutoNegotiationAdvertisement {
@@ -452,7 +449,7 @@ pub trait Phy<M: Miim> {
     }
 
     /// This returns `None` if `extended_caps` in `Self::status` is `false`
-    fn ane(&self) -> Option<Ane> {
+    fn ane(&mut self) -> Option<Ane> {
         if self.status().extended_caps {
             Some(Ane::from_bits_truncate(self.read(Ane::ADDRESS)))
         } else {
