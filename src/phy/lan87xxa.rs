@@ -15,7 +15,7 @@ pub type LAN8720A<MIIM> = LAN87xxA<MIIM, false>;
 pub type LAN8742A<MIIM> = LAN87xxA<MIIM, true>;
 
 /// All interrupt sources supported by this chip
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum Interrupt {
     /// A page was received during auto negotiation
     AutoNegotiationPageRecvd,

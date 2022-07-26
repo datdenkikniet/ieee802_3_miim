@@ -151,7 +151,7 @@ pub struct ExtendedPhyStatus {
 /// sent by a PHY.
 ///
 /// In practice, [`SelectorField::Std802_3`] is used almost exclusively.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum SelectorField {
     /// The message is an IEEE Std 802.3 message
     Std802_3,
@@ -197,7 +197,7 @@ impl From<SelectorField> for AutoNegCap {
 }
 
 /// The pause mode supported by this PHY
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum Pause {
     /// The PHY supports no PAUSE modes
     NoPause,
@@ -242,7 +242,7 @@ impl From<Pause> for AutoNegCap {
 }
 
 /// An autonegotiation advertisement.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, defmt::Format)]
 pub struct AutoNegotiationAdvertisement {
     /// The type of message sent
     pub selector_field: SelectorField,
