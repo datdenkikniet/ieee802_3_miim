@@ -15,7 +15,7 @@ pub type LAN8720A<MIIM> = LAN87xxA<MIIM, false>;
 pub type LAN8742A<MIIM> = LAN87xxA<MIIM, true>;
 
 /// All interrupt sources supported by this chip
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum Interrupt {
     /// A page was received during auto negotiation
     AutoNegotiationPageRecvd,
@@ -58,6 +58,7 @@ impl From<Interrupt> for InterruptReg {
 /// in extended registers should be cleared
 ///
 /// This type should not be used directly. Use [`LAN8720A`] or [`LAN8742A`] instead.
+#[derive(Debug)]
 pub struct LAN87xxA<M: Miim, const HAS_MMD: bool> {
     phy_addr: u8,
     miim: M,
@@ -77,9 +78,6 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
         }
 
         self.set_autonegotiation_advertisement(self.best_supported_advertisement());
-        self.modify_bcr(|bcr| {
-            bcr.set_autonegotiation(true).restart_autonegotiation();
-        })
     }
 
     /// Get the link speed
@@ -97,7 +95,7 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
         let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
 
         // Link established only if it's up, and autonegotiation is completed
-        !(!bsr.phy_link_up() || !bsr.autoneg_completed() || ssr.contains(Ssr::AUTONEG_DONE))
+        bsr.phy_link_up() && bsr.autoneg_completed() && ssr.contains(Ssr::AUTONEG_DONE)
     }
 
     /// Block until a link is established

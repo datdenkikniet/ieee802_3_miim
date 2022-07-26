@@ -4,6 +4,7 @@
 use crate::{AutoNegotiationAdvertisement, Miim, Pause, Phy};
 
 /// A base phy
+#[derive(Debug)]
 pub struct BarePhy<MIIM>
 where
     MIIM: Miim,
@@ -47,7 +48,7 @@ where
     MIIM: Miim,
 {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
-        self.best_supported_advertisement
+        self.best_supported_advertisement.clone()
     }
 
     fn get_miim(&mut self) -> &mut MIIM {

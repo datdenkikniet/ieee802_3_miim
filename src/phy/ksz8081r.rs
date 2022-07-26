@@ -7,6 +7,7 @@ use self::registers::PhyControl1;
 use super::{AdvancedPhySpeed, PhySpeed, PhyWithSpeed};
 
 /// A KSZ8081R
+#[derive(Debug)]
 pub struct KSZ8081R<MIIM: Miim> {
     phy_addr: u8,
     miim: MIIM,

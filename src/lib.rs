@@ -18,6 +18,7 @@ use registers::*;
 pub mod phy;
 
 /// All basic link speeds possibly supported by the PHY.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum LinkSpeed {
     /// 1000 Mbps
     Mpbs1000,
@@ -57,6 +58,7 @@ impl From<LinkSpeed> for Bcr {
 /// The status register of a PHY.
 ///
 /// This struct describes what functions the PHY is capable of.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct PhyStatus {
     /// The PHY supports 100BASE-T4
     pub base100_t4: bool,
@@ -136,6 +138,7 @@ impl From<Bsr> for PhyStatus {
 ///
 /// This register is only valid if the field `extended_status` in the
 ///  [`PhyStatus`] describing this struct is `true`
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct ExtendedPhyStatus {
     /// The PHY supports 1000BASE-X Full Duplex
     pub fd_1000base_x: bool,
@@ -151,7 +154,7 @@ pub struct ExtendedPhyStatus {
 /// sent by a PHY.
 ///
 /// In practice, [`SelectorField::Std802_3`] is used almost exclusively.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum SelectorField {
     /// The message is an IEEE Std 802.3 message
     Std802_3,
@@ -169,19 +172,22 @@ impl Default for SelectorField {
     }
 }
 
-impl From<AutoNegCap> for SelectorField {
+impl From<AutoNegCap> for Option<SelectorField> {
     fn from(ana: AutoNegCap) -> Self {
-        if ana.contains(AutoNegCap::SEL_802_3) {
+        // We use bitwise XOR (`^`) here to ensure that all bits
+        // we use to check for equivalence are set to their correct values
+        let field = if ana ^ AutoNegCap::SEL_802_3 == AutoNegCap::empty() {
             SelectorField::Std802_3
-        } else if ana.contains(AutoNegCap::SEL_802_5) {
+        } else if ana ^ AutoNegCap::SEL_802_5 == AutoNegCap::empty() {
             SelectorField::Std802_5
-        } else if ana.contains(AutoNegCap::SEL_802_9_ISLAN_16T) {
+        } else if ana ^ AutoNegCap::SEL_802_9_ISLAN_16T == AutoNegCap::empty() {
             SelectorField::Std802_9Islan16t
-        } else if ana.contains(AutoNegCap::SEL_1394) {
+        } else if ana ^ AutoNegCap::SEL_1394 == AutoNegCap::empty() {
             SelectorField::Std1394
         } else {
-            panic!("Invalid SEL field")
-        }
+            return None;
+        };
+        Some(field)
     }
 }
 
@@ -197,7 +203,7 @@ impl From<SelectorField> for AutoNegCap {
 }
 
 /// The pause mode supported by this PHY
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum Pause {
     /// The PHY supports no PAUSE modes
     NoPause,
@@ -242,10 +248,10 @@ impl From<Pause> for AutoNegCap {
 }
 
 /// An autonegotiation advertisement.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct AutoNegotiationAdvertisement {
     /// The type of message sent
-    pub selector_field: SelectorField,
+    pub selector_field: Option<SelectorField>,
     /// The PHY supports 10BASE-T
     pub hd_10base_t: bool,
     /// The PHY supports 10BASE-T Full Duplex
@@ -263,13 +269,27 @@ pub struct AutoNegotiationAdvertisement {
 impl Default for AutoNegotiationAdvertisement {
     fn default() -> Self {
         Self {
-            selector_field: Default::default(),
+            selector_field: Some(SelectorField::default()),
             hd_10base_t: false,
             fd_10base_t: false,
             hd_100base_tx: false,
             fd_100base_tx: false,
             base100_t4: false,
             pause: Default::default(),
+        }
+    }
+}
+
+impl From<AutoNegCap> for AutoNegotiationAdvertisement {
+    fn from(ana: AutoNegCap) -> Self {
+        AutoNegotiationAdvertisement {
+            selector_field: ana.into(),
+            hd_10base_t: ana.contains(AutoNegCap::_10BASET),
+            fd_10base_t: ana.contains(AutoNegCap::_10BASETFD),
+            hd_100base_tx: ana.contains(AutoNegCap::_100BASETX),
+            fd_100base_tx: ana.contains(AutoNegCap::_100BASETXFD),
+            base100_t4: ana.contains(AutoNegCap::_100BASET4),
+            pause: ana.into(),
         }
     }
 }
@@ -393,12 +413,13 @@ pub trait Phy<M: Miim> {
         }
     }
 
-    /// Set the autonegotiation advertisement
+    /// Set the autonegotiation advertisement and restarts the autonegotiation
+    /// process
     ///
     /// This is a no-op if `extended_caps` in [`Self::status`] is false
     fn set_autonegotiation_advertisement(&mut self, ad: AutoNegotiationAdvertisement) {
         let status = self.status();
-        if status.extended_caps {
+        if !status.extended_caps {
             return;
         }
 
@@ -424,28 +445,41 @@ pub trait Phy<M: Miim> {
             ana.insert(AutoNegCap::_100BASET4);
         }
 
-        ana.insert(ad.selector_field.into());
+        if let Some(selector) = ad.selector_field {
+            ana.insert(selector.into());
+        }
 
         ana.insert(ad.pause.into());
 
-        self.write(AutoNegCap::LOCAL_CAP_ADDRESS, ana.bits())
+        self.write(AutoNegCap::LOCAL_CAP_ADDRESS, ana.bits());
+
+        self.modify_bcr(|bcr| {
+            bcr.set_autonegotiation(true).restart_autonegotiation();
+        })
+    }
+
+    /// Get the advertised capabilities of this PHY
+    ///
+    /// This is a no-op if `extended_caps` in [`Self::status`] is false
+    fn get_autonegotiation_caps(&mut self) -> Option<AutoNegotiationAdvertisement> {
+        let status = self.status();
+        if !status.extended_caps {
+            return None;
+        }
+        let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::LOCAL_CAP_ADDRESS));
+        Some(ana.into())
     }
 
     /// Get the capabilites of the autonegotiation partner of this PHY
-    fn get_autonegotiation_partner_caps(&mut self) -> AutoNegotiationAdvertisement {
+    ///
+    /// This is a no-op if `extended_caps` in [`Self::status`] is false
+    fn get_autonegotiation_partner_caps(&mut self) -> Option<AutoNegotiationAdvertisement> {
+        let status = self.status();
+        if !status.extended_caps {
+            return None;
+        }
         let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::PARTNER_CAP_ADDRESS));
-
-        let ad = AutoNegotiationAdvertisement {
-            selector_field: ana.into(),
-            hd_10base_t: ana.contains(AutoNegCap::_10BASET),
-            fd_10base_t: ana.contains(AutoNegCap::_10BASETFD),
-            hd_100base_tx: ana.contains(AutoNegCap::_100BASETX),
-            fd_100base_tx: ana.contains(AutoNegCap::_100BASETXFD),
-            base100_t4: ana.contains(AutoNegCap::_100BASET4),
-            pause: ana.into(),
-        };
-
-        ad
+        Some(ana.into())
     }
 
     /// This returns `None` if `extended_caps` in `Self::status` is `false`
