@@ -398,7 +398,7 @@ pub trait Phy<M: Miim> {
     /// This is a no-op if `extended_caps` in [`Self::status`] is false
     fn set_autonegotiation_advertisement(&mut self, ad: AutoNegotiationAdvertisement) {
         let status = self.status();
-        if status.extended_caps {
+        if !status.extended_caps {
             return;
         }
 
@@ -432,7 +432,11 @@ pub trait Phy<M: Miim> {
     }
 
     /// Get the capabilites of the autonegotiation partner of this PHY
-    fn get_autonegotiation_partner_caps(&mut self) -> AutoNegotiationAdvertisement {
+    fn get_autonegotiation_partner_caps(&mut self) -> Option<AutoNegotiationAdvertisement> {
+        let status = self.status();
+        if !status.extended_caps {
+            return None;
+        }
         let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::PARTNER_CAP_ADDRESS));
 
         let ad = AutoNegotiationAdvertisement {
@@ -445,7 +449,7 @@ pub trait Phy<M: Miim> {
             pause: ana.into(),
         };
 
-        ad
+        Some(ad)
     }
 
     /// This returns `None` if `extended_caps` in `Self::status` is `false`
