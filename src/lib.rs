@@ -409,7 +409,8 @@ pub trait Phy<M: Miim> {
         }
     }
 
-    /// Set the autonegotiation advertisement
+    /// Set the autonegotiation advertisement and restarts the autonegotiation
+    /// process
     ///
     /// This is a no-op if `extended_caps` in [`Self::status`] is false
     fn set_autonegotiation_advertisement(&mut self, ad: AutoNegotiationAdvertisement) {
@@ -446,7 +447,11 @@ pub trait Phy<M: Miim> {
 
         ana.insert(ad.pause.into());
 
-        self.write(AutoNegCap::LOCAL_CAP_ADDRESS, ana.bits())
+        self.write(AutoNegCap::LOCAL_CAP_ADDRESS, ana.bits());
+
+        self.modify_bcr(|bcr| {
+            bcr.set_autonegotiation(true).restart_autonegotiation();
+        })
     }
 
     /// Get the advertised capabilities of this PHY

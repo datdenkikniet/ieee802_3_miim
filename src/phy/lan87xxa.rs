@@ -77,9 +77,6 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
         }
 
         self.set_autonegotiation_advertisement(self.best_supported_advertisement());
-        self.modify_bcr(|bcr| {
-            bcr.set_autonegotiation(true).restart_autonegotiation();
-        })
     }
 
     /// Get the link speed
