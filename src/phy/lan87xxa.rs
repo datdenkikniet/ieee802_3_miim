@@ -58,6 +58,7 @@ impl From<Interrupt> for InterruptReg {
 /// in extended registers should be cleared
 ///
 /// This type should not be used directly. Use [`LAN8720A`] or [`LAN8742A`] instead.
+#[derive(Debug)]
 pub struct LAN87xxA<M: Miim, const HAS_MMD: bool> {
     phy_addr: u8,
     miim: M,

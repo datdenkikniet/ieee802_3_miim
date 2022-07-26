@@ -4,6 +4,7 @@
 use crate::{AutoNegotiationAdvertisement, Miim, Pause, Phy};
 
 /// A base phy
+#[derive(Debug)]
 pub struct BarePhy<MIIM>
 where
     MIIM: Miim,

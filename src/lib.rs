@@ -18,6 +18,7 @@ use registers::*;
 pub mod phy;
 
 /// All basic link speeds possibly supported by the PHY.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub enum LinkSpeed {
     /// 1000 Mbps
     Mpbs1000,
@@ -57,7 +58,7 @@ impl From<LinkSpeed> for Bcr {
 /// The status register of a PHY.
 ///
 /// This struct describes what functions the PHY is capable of.
-#[derive(Clone, Copy, Debug, defmt::Format)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct PhyStatus {
     /// The PHY supports 100BASE-T4
     pub base100_t4: bool,
@@ -137,6 +138,7 @@ impl From<Bsr> for PhyStatus {
 ///
 /// This register is only valid if the field `extended_status` in the
 ///  [`PhyStatus`] describing this struct is `true`
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct ExtendedPhyStatus {
     /// The PHY supports 1000BASE-X Full Duplex
     pub fd_1000base_x: bool,
@@ -244,7 +246,7 @@ impl From<Pause> for AutoNegCap {
 }
 
 /// An autonegotiation advertisement.
-#[derive(Clone, Debug, PartialEq, Eq, defmt::Format)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
 pub struct AutoNegotiationAdvertisement {
     /// The type of message sent
     pub selector_field: Option<SelectorField>,
