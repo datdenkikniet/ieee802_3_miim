@@ -11,7 +11,7 @@ pub mod ksz8081r;
 pub mod bare;
 
 /// Basic link speeds, supported by (almost all) PHYs
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhySpeed {
     /// 10BaseT - Half duplex
     HalfDuplexBase10T,
@@ -23,7 +23,7 @@ pub enum PhySpeed {
     FullDuplexBase100Tx,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 /// An "advanced link speed" enum that covers more than just the
 /// basic ones described by the standard.
