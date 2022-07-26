@@ -55,13 +55,13 @@ mod regs {
             const REMOTE_FAULT = (1 << 13);
             const EXTENDED_NEXT_PAGE = (1 << 12);
 
-            const _10BASET = (1 << Self::TECH_ABILITY_OFFSET + 6);
-            const _10BASETFD = (1 << Self::TECH_ABILITY_OFFSET + 5);
-            const _100BASETX = (1 << Self::TECH_ABILITY_OFFSET + 4);
-            const _100BASETXFD = (1 << Self::TECH_ABILITY_OFFSET << 3);
-            const _100BASET4 = (1 << Self::TECH_ABILITY_OFFSET + 2);
-            const PAUSE = (1 << Self::TECH_ABILITY_OFFSET + 1);
-            const ASSYMETRIC_PAUSE = (1 << Self::TECH_ABILITY_OFFSET);
+            const ASSYMETRIC_PAUSE = (1 << 11);
+            const PAUSE = (1 << 10);
+            const _100BASET4 = (1 << 9);
+            const _100BASETXFD = (1 << 8);
+            const _100BASETX = (1 << 7);
+            const _10BASETFD = (1 << 6);
+            const _10BASET = (1 << 5);
 
             const SEL_802_3 = (0b00001);
             const SEL_802_9_ISLAN_16T = (0b00010);
@@ -216,7 +216,6 @@ impl Bsr {
 }
 
 impl AutoNegCap {
-    const TECH_ABILITY_OFFSET: u8 = 5;
     /// The address of the local auto-negotiation capabilities register
     pub const LOCAL_CAP_ADDRESS: u8 = 4;
     /// The address of the parter auto-negotiation capabilities register
