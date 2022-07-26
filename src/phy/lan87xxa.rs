@@ -97,7 +97,7 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
         let ssr = Ssr::from_bits_truncate(self.read(Ssr::ADDRESS));
 
         // Link established only if it's up, and autonegotiation is completed
-        !(!bsr.phy_link_up() || !bsr.autoneg_completed() || ssr.contains(Ssr::AUTONEG_DONE))
+        bsr.phy_link_up() && bsr.autoneg_completed() && ssr.contains(Ssr::AUTONEG_DONE)
     }
 
     /// Block until a link is established
