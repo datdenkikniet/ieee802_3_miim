@@ -48,7 +48,7 @@ where
     MIIM: Miim,
 {
     fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement {
-        self.best_supported_advertisement.clone()
+        self.best_supported_advertisement
     }
 
     fn get_miim(&mut self) -> &mut MIIM {

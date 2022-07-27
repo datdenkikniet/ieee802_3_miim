@@ -121,6 +121,8 @@ pub mod registers {
             let mbit_10 = ctrl.contains(PhyControl1::MBIT10);
             let mbit_100 = ctrl.contains(PhyControl1::MBIT100);
 
+            // allow collapsible else/if for clearer semantics
+            #[allow(clippy::collapsible_else_if)]
             let speed = if full_duplex {
                 if mbit_10 {
                     PhySpeed::FullDuplexBase10T
