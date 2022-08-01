@@ -18,7 +18,8 @@ use registers::*;
 pub mod phy;
 
 /// All basic link speeds possibly supported by the PHY.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LinkSpeed {
     /// 1000 Mbps
     Mpbs1000,
@@ -58,7 +59,8 @@ impl From<LinkSpeed> for Bcr {
 /// The status register of a PHY.
 ///
 /// This struct describes what functions the PHY is capable of.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PhyStatus {
     /// The PHY supports 100BASE-T4
     pub base100_t4: bool,
@@ -138,7 +140,8 @@ impl From<Bsr> for PhyStatus {
 ///
 /// This register is only valid if the field `extended_status` in the
 ///  [`PhyStatus`] describing this struct is `true`
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ExtendedPhyStatus {
     /// The PHY supports 1000BASE-X Full Duplex
     pub fd_1000base_x: bool,
@@ -154,7 +157,8 @@ pub struct ExtendedPhyStatus {
 /// sent by a PHY.
 ///
 /// In practice, [`SelectorField::Std802_3`] is used almost exclusively.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SelectorField {
     /// The message is an IEEE Std 802.3 message
     Std802_3,
@@ -203,7 +207,8 @@ impl From<SelectorField> for AutoNegCap {
 }
 
 /// The pause mode supported by this PHY
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Pause {
     /// The PHY supports no PAUSE modes
     NoPause,
@@ -248,7 +253,8 @@ impl From<Pause> for AutoNegCap {
 }
 
 /// An autonegotiation advertisement.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, defmt::Format)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct AutoNegotiationAdvertisement {
     /// The type of message sent
     pub selector_field: Option<SelectorField>,
