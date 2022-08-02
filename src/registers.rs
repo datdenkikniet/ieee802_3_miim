@@ -63,6 +63,7 @@ mod regs {
             const _10BASETFD = (1 << 6);
             const _10BASET = (1 << 5);
 
+            const SEL_MASK = (0b11111);
             const SEL_802_3 = (0b00001);
             const SEL_802_9_ISLAN_16T = (0b00010);
             const SEL_802_5 = (0b00011);

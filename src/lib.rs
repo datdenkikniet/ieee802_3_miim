@@ -180,13 +180,16 @@ impl From<AutoNegCap> for Option<SelectorField> {
     fn from(ana: AutoNegCap) -> Self {
         // We use bitwise XOR (`^`) here to ensure that all bits
         // we use to check for equivalence are set to their correct values
-        let field = if ana ^ AutoNegCap::SEL_802_3 == AutoNegCap::empty() {
+
+        let ana = ana & AutoNegCap::SEL_MASK;
+
+        let field = if (ana ^ AutoNegCap::SEL_802_3).is_empty() {
             SelectorField::Std802_3
-        } else if ana ^ AutoNegCap::SEL_802_5 == AutoNegCap::empty() {
+        } else if (ana ^ AutoNegCap::SEL_802_5).is_empty() {
             SelectorField::Std802_5
-        } else if ana ^ AutoNegCap::SEL_802_9_ISLAN_16T == AutoNegCap::empty() {
+        } else if (ana ^ AutoNegCap::SEL_802_9_ISLAN_16T).is_empty() {
             SelectorField::Std802_9Islan16t
-        } else if ana ^ AutoNegCap::SEL_1394 == AutoNegCap::empty() {
+        } else if (ana ^ AutoNegCap::SEL_1394).is_empty() {
             SelectorField::Std1394
         } else {
             return None;
