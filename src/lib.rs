@@ -8,7 +8,9 @@ mod miim;
 
 pub use miim::Miim;
 
+#[cfg(feature = "mmd")]
 mod mmd;
+#[cfg(feature = "mmd")]
 use mmd::Mmd;
 
 pub mod registers;
@@ -501,6 +503,7 @@ pub trait Phy<M: Miim> {
     }
 
     /// Read an MMD register
+    #[cfg(feature = "mmd")]
     fn mmd_read(&mut self, mmd_address: u8, reg_address: u16) -> u16
     where
         Self: Sized,
@@ -509,6 +512,7 @@ pub trait Phy<M: Miim> {
     }
 
     /// Write an MMD register
+    #[cfg(feature = "mmd")]
     fn mmd_write(&mut self, device_address: u8, reg_address: u16, reg_value: u16)
     where
         Self: Sized,

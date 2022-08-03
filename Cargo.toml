@@ -14,9 +14,10 @@ readme = "README.md"
 default = [ "lan8720a", "lan8742a", "kzs8081r" ]
 
 phy = [ ]
-lan8720a = [ "phy" ]
-lan8742a = [ "phy" ]
+lan8720a = [ "phy", "mmd" ]
+lan8742a = [ "phy", "mmd" ]
 kzs8081r = [ "phy" ]
+mmd = [ ]
 
 [dependencies]
 bitflags = "1.3"
