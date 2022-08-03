@@ -17,6 +17,18 @@ Several standard implementations are provided with the enabled-by-default `phy`,
 * `lan8720a` provides an implementation for the SMSC LAN8720a PHY. Note that `Interrupt::WoL` is _not_ supported by this PHY, but it will be present if the `lan8742a` feature is also enabled.
 * `ksz8081r` provides an implementation for the MicroChip KSZ8081R PHY
 
+# Goals
+
+The goals of this project include:
+* Provide as complete of an implementation of the MIIM protocol as possible
+* Provide default implementations for commonly used PHYs, so that they can easily be
+  re-used
+
+# Non-goals
+
+Non-goals of this project include:
+* Provide support for SMI protocols that are not MIIM
+
 # License
 This project is licensed under the MIT license.
 
