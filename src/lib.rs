@@ -211,6 +211,43 @@ impl From<SelectorField> for AutoNegCap {
     }
 }
 
+/// The PHY IDENT of this PHY
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PhyIdent(u16, u16);
+
+impl PhyIdent {
+    /// Create a new PhyIdent
+    pub fn new(phy_ident_1: u16, phy_ident_2: u16) -> Self {
+        Self(phy_ident_1, phy_ident_2)
+    }
+
+    /// The raw values of this PhyIdent
+    pub fn raw(&self) -> (u16, u16) {
+        (self.0, self.1)
+    }
+
+    /// The raw value of this PhyIdent, as u32
+    pub fn raw_u32(&self) -> u32 {
+        (self.0 as u32) << 16 | (self.1 as u32)
+    }
+
+    /// The OUI of this PhyIdent
+    pub fn oui(&self) -> u32 {
+        (self.0 as u32) << 6 & (self.1 as u32) >> 10
+    }
+
+    /// The model number of this PhyIdent
+    pub fn model_number(&self) -> u8 {
+        (self.1 >> 4) as u8 & 0x3F
+    }
+
+    /// The revision number of this PhyIdent
+    pub fn revision(&self) -> u8 {
+        (self.1) as u8 & 0x0F
+    }
+}
+
 /// The pause mode supported by this PHY
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -414,11 +451,11 @@ pub trait Phy<M: Miim> {
     /// Read the PHY identifier for this PHY.
     ///
     /// Returns `None` if `extended_capabilities` in [`Self::status`] is false
-    fn phy_ident(&mut self) -> Option<u32> {
+    fn phy_ident(&mut self) -> Option<PhyIdent> {
         if self.status().extended_caps {
-            let msb = self.read(2) as u32;
-            let lsb = self.read(3) as u32;
-            Some(msb << 16 | lsb)
+            let msb = self.read(2);
+            let lsb = self.read(3);
+            Some(PhyIdent::new(msb, lsb))
         } else {
             None
         }

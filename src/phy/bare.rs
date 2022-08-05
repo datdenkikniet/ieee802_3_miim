@@ -59,3 +59,35 @@ where
         self.phy_address
     }
 }
+
+pub enum IdentPhyError {
+    PhyIdentUnavailable,
+    IncorrectPhyIdent,
+}
+
+macro_rules! into_phy {
+    ($([$feat:literal, $phy:ident, $id:literal],)*) => {
+        $(
+            #[cfg(feature = $feat)]
+            impl<MIIM: Miim> TryFrom<BarePhy<MIIM>> for super::$phy<MIIM> {
+                type Error = IdentPhyError;
+
+                fn try_from(mut value: BarePhy<MIIM>) -> Result<Self, Self::Error> {
+                    let phy_ident = value.phy_ident().ok_or(IdentPhyError::PhyIdentUnavailable)?.raw_u32();
+
+                    if phy_ident & 0xFFFFFFF0 == $id {
+                        Ok(super::$phy::new(value.miim, value.phy_address))
+                    } else {
+                        Err(IdentPhyError::IncorrectPhyIdent)
+                    }
+                }
+            }
+        )*
+    };
+}
+
+into_phy!(
+    ["ksz8081r", KSZ8081R, 0x00221560],
+    ["lan8720a", LAN8720A, 0x0007C0F0],
+    ["lan8742a", LAN8742A, 0x0007C130],
+);
