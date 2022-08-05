@@ -4,11 +4,16 @@ use crate::{Miim, Phy};
 
 #[cfg(any(feature = "lan8720a", feature = "lan8742a"))]
 pub mod lan87xxa;
+#[cfg(any(feature = "lan8720a", feature = "lan8742a"))]
+pub use lan87xxa::{LAN8720A, LAN8742A};
 
 #[cfg(feature = "kzs8081r")]
-pub mod ksz8081r;
+mod ksz8081r;
+#[cfg(feature = "kzs8081r")]
+pub use ksz8081r::KSZ8081R;
 
-pub mod bare;
+mod bare;
+pub use bare::BarePhy;
 
 /// Basic link speeds, supported by (almost all) PHYs
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
