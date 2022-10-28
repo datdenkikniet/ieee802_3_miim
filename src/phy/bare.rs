@@ -41,6 +41,11 @@ where
     pub fn release(self) -> MIIM {
         self.miim
     }
+
+    /// Change the PHY address
+    pub fn set_phy_addr(&mut self, phy_address: u8) {
+        self.phy_address = phy_address;
+    }
 }
 
 impl<MIIM> Phy<MIIM> for BarePhy<MIIM>
