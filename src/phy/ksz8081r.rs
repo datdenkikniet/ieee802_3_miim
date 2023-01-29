@@ -54,6 +54,11 @@ impl<MIIM: Miim> KSZ8081R<MIIM> {
     pub fn link_established(&mut self) -> bool {
         self.autoneg_completed() && self.phy_link_up()
     }
+
+    /// Release the underlying [`Miim`]
+    pub fn release(self) -> MIIM {
+        self.miim
+    }
 }
 
 impl<MIIM: Miim> Phy<MIIM> for KSZ8081R<MIIM> {
