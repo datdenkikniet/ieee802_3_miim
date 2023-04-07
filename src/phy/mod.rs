@@ -12,6 +12,11 @@ mod ksz8081r;
 #[cfg(feature = "ksz8081r")]
 pub use ksz8081r::KSZ8081R;
 
+#[cfg(any(feature = "dp83848", feature = "dp83640"))]
+mod dp83xxx;
+#[cfg(any(feature = "dp83848", feature = "dp83640"))]
+pub use dp83xxx::{DP83640, DP83848};
+
 mod bare;
 pub use bare::BarePhy;
 
