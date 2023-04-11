@@ -11,13 +11,15 @@ categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
 [features]
-default = [ "lan8720a", "lan8742a", "ksz8081r" ]
+default = ["lan8720a", "lan8742a", "ksz8081r", "dp83640", "dp83848"]
 
-phy = [ ]
-lan8720a = [ "phy", "mmd" ]
-lan8742a = [ "phy", "mmd" ]
-ksz8081r = [ "phy" ]
-mmd = [ ]
+phy = []
+lan8720a = ["phy", "mmd"]
+lan8742a = ["phy", "mmd"]
+ksz8081r = ["phy"]
+dp83640 = ["phy"]
+dp83848 = ["phy"]
+mmd = []
 
 [dependencies]
 bitflags = "1.3"
