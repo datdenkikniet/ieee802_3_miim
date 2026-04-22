@@ -1,12 +1,10 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
 
 //! A crate that provides access to the MIIM interface described
 //! by IEEE standard 802.3
 
-mod miim;
-
-pub use miim::Miim;
+pub mod mdio;
 
 #[cfg(feature = "mmd")]
 mod mmd;
@@ -16,199 +14,56 @@ use mmd::Mmd;
 pub mod registers;
 use registers::*;
 
+use crate::registers::{
+    auto_negotiation::{
+        AutonegotiationAdvertisement, AutonegotiationExpansion, AutonegotiationLinkPartnerAbility,
+    },
+    leader_follower::{LeaderFollowerControl, LeaderFollowerStatus},
+};
+
 #[cfg(feature = "phy")]
 pub mod phy;
+
+/// Errors that can occur when attempting to determine
+/// the state of a link.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LinkStateError {
+    /// No link has been established yet.
+    NoLink,
+    /// Autonegotiation is enabled, but has not completed yet.
+    AutonegotiationNotCompleted,
+    /// An autonegotiating PHY without extended capabilities
+    /// was encountered. Reading out the link state for such
+    /// a PHY is not possible due to missing register.
+    ExtendedCapabilities,
+    /// The link partner does not support auto negotiation.
+    LinkPartnerNotAutonegotiationAble,
+    /// None of the technologies supported by this PHY
+    /// are supported by the link partner, and vice-versa.
+    NoMatchingTechnologies,
+}
+
+/// The state of a link.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LinkState {
+    /// The speed of the link.
+    pub speed: LinkSpeed,
+    /// The duplex mode of the link.
+    pub duplex: DuplexMode,
+}
 
 /// All basic link speeds possibly supported by the PHY.
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LinkSpeed {
     /// 1000 Mbps
-    Mpbs1000,
+    Mbps1000,
     /// 100 Mbps
     Mbps100,
     /// 10 Mbps
-    Mpbs10,
-    /// An illegal link speed is configured
-    Illegal,
-}
-
-impl From<Bcr> for LinkSpeed {
-    fn from(bcr: Bcr) -> Self {
-        match (
-            bcr.contains(Bcr::SPEED_SEL_MSB),
-            bcr.contains(Bcr::SPEED_SEL_LSB),
-        ) {
-            (true, true) => LinkSpeed::Illegal,
-            (true, false) => LinkSpeed::Mpbs1000,
-            (false, true) => LinkSpeed::Mbps100,
-            (false, false) => LinkSpeed::Mpbs10,
-        }
-    }
-}
-
-impl From<LinkSpeed> for Bcr {
-    fn from(link_speed: LinkSpeed) -> Self {
-        match link_speed {
-            LinkSpeed::Mpbs1000 => Bcr::SPEED_SEL_MSB,
-            LinkSpeed::Mbps100 => Bcr::SPEED_SEL_LSB,
-            LinkSpeed::Mpbs10 => Bcr::empty(),
-            LinkSpeed::Illegal => panic!("Cannot convert illegal link speed into Bcr"),
-        }
-    }
-}
-
-/// The status register of a PHY.
-///
-/// This struct describes what functions the PHY is capable of.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PhyStatus {
-    /// The PHY supports 100BASE-T4
-    pub base100_t4: bool,
-    /// The PHY supports 100BASE-X Full Duplex
-    pub fd_100base_x: bool,
-    /// The PHY supports 100BASE-X Half Duplex
-    pub hd_100base_x: bool,
-    /// The PHY supports 10 Mb/s full duplex
-    pub fd_10mbps: bool,
-    /// The PHY supports 10 Mb/s half duples
-    pub hd_10mbps: bool,
-    /// The PHY has extended status data in register 15
-    pub extended_status: bool,
-    /// The PHY supports unidirectional communication
-    pub unidirectional: bool,
-    /// The PHY is capable of accepting managmenet frames
-    /// that are not preceded by the preamble
-    pub preamble_suppression: bool,
-    /// The PHY can perform autonegotiation
-    pub autonegotiation: bool,
-    /// The PHY supports extended capabilities, accessible
-    /// through the extended register set
-    pub extended_caps: bool,
-}
-
-impl PhyStatus {
-    /// Create the best autonegotiation advertisement that we can.
-    ///
-    /// The returned advertisement will have default values for `selector_field` and `pause`.
-    /// Those fields must be configured manually, or left to their defaults.
-    pub fn best_autoneg_ad(&self) -> AutoNegotiationAdvertisement {
-        let mut ad = AutoNegotiationAdvertisement::default();
-        if self.base100_t4 {
-            ad.base100_t4 = true;
-        }
-
-        if self.fd_100base_x {
-            ad.fd_100base_tx = true;
-        }
-
-        if self.hd_100base_x {
-            ad.hd_100base_tx = true;
-        }
-
-        if self.fd_10mbps {
-            ad.fd_10base_t = true;
-        }
-
-        if self.hd_10mbps {
-            ad.hd_10base_t = true;
-        }
-
-        ad
-    }
-}
-
-impl From<Bsr> for PhyStatus {
-    fn from(bsr: Bsr) -> Self {
-        PhyStatus {
-            base100_t4: bsr.contains(Bsr::_100BASET4),
-            fd_100base_x: bsr.contains(Bsr::_100BASEXFD),
-            hd_100base_x: bsr.contains(Bsr::_100BASEXHD),
-            fd_10mbps: bsr.contains(Bsr::_10MPBSFD),
-            hd_10mbps: bsr.contains(Bsr::_10MBPSHD),
-            extended_status: bsr.contains(Bsr::EXTENDED_STATUS),
-            unidirectional: bsr.contains(Bsr::UNIDRECTIONAL),
-            preamble_suppression: bsr.contains(Bsr::MF_PREAMBLE_SUPPRESSION),
-            autonegotiation: bsr.contains(Bsr::AUTONEG_ABLE),
-            extended_caps: bsr.contains(Bsr::EXTENDED_CAPABILITIES),
-        }
-    }
-}
-
-/// The extended status register of a PHY.
-///
-/// This struct describes what extended functions the PHY is capable of.
-///
-/// This register is only valid if the field `extended_status` in the
-///  [`PhyStatus`] describing this struct is `true`
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ExtendedPhyStatus {
-    /// The PHY supports 1000BASE-X Full Duplex
-    pub fd_1000base_x: bool,
-    /// The PHY supports 1000BASE-X Half Duplex
-    pub hd_1000base_x: bool,
-    /// The PHY supports 1000BASE-T Full Duplex
-    pub fd_1000base_t: bool,
-    /// The PHY supports 1000BASE-T Half Duplex
-    pub hd_1000base_t: bool,
-}
-
-/// The selector field, describing the type of autonegotiation message
-/// sent by a PHY.
-///
-/// In practice, [`SelectorField::Std802_3`] is used almost exclusively.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SelectorField {
-    /// The message is an IEEE Std 802.3 message
-    Std802_3,
-    /// The message is an IEEE Std 802.9 ISLAN-16T message
-    Std802_9Islan16t,
-    /// The message is an IEEE Std 802.5 message
-    Std802_5,
-    /// The message is an IEEE Std 1394 message
-    Std1394,
-}
-
-impl Default for SelectorField {
-    fn default() -> Self {
-        Self::Std802_3
-    }
-}
-
-impl From<AutoNegCap> for Option<SelectorField> {
-    fn from(ana: AutoNegCap) -> Self {
-        // We use bitwise XOR (`^`) here to ensure that all bits
-        // we use to check for equivalence are set to their correct values
-
-        let ana = ana & AutoNegCap::SEL_MASK;
-
-        let field = if (ana ^ AutoNegCap::SEL_802_3).is_empty() {
-            SelectorField::Std802_3
-        } else if (ana ^ AutoNegCap::SEL_802_5).is_empty() {
-            SelectorField::Std802_5
-        } else if (ana ^ AutoNegCap::SEL_802_9_ISLAN_16T).is_empty() {
-            SelectorField::Std802_9Islan16t
-        } else if (ana ^ AutoNegCap::SEL_1394).is_empty() {
-            SelectorField::Std1394
-        } else {
-            return None;
-        };
-        Some(field)
-    }
-}
-
-impl From<SelectorField> for AutoNegCap {
-    fn from(sf: SelectorField) -> Self {
-        match sf {
-            SelectorField::Std802_3 => AutoNegCap::SEL_802_3,
-            SelectorField::Std802_9Islan16t => AutoNegCap::SEL_802_9_ISLAN_16T,
-            SelectorField::Std802_5 => AutoNegCap::SEL_802_5,
-            SelectorField::Std1394 => AutoNegCap::SEL_1394,
-        }
-    }
+    Mbps10,
 }
 
 /// The PHY IDENT of this PHY
@@ -248,152 +103,48 @@ impl PhyIdent {
     }
 }
 
-/// The pause mode supported by this PHY
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Pause {
-    /// The PHY supports no PAUSE modes
-    NoPause,
-    /// The PHY supports asymmetric PAUSE mode toward its link partner
-    AsymmetricPartner,
-    /// The PHY supports symmetric PAUSE mode
-    Symmetric,
-    /// The PHY supports both symmetric pause and asymmetric PAUSE towards
-    /// the local device
-    SymmetricAndAsymmetricLocal,
-}
+/// An IEEE 802.3 compatible PHY that can be managed
+/// using the Media Independent Interface Management (MIIM)
+/// Interface.
+pub trait Miim {
+    /// Read the MIIM register at `address`.
+    fn read_raw(&mut self, address: u8) -> u16;
 
-impl Default for Pause {
-    fn default() -> Self {
-        Pause::NoPause
-    }
-}
+    /// Write `value` to the MIIM register at `address`.
+    fn write_raw(&mut self, address: u8, value: u16);
 
-impl From<AutoNegCap> for Pause {
-    fn from(ana: AutoNegCap) -> Self {
-        match (
-            ana.contains(AutoNegCap::ASSYMETRIC_PAUSE),
-            ana.contains(AutoNegCap::PAUSE),
-        ) {
-            (false, false) => Pause::NoPause,
-            (true, false) => Pause::AsymmetricPartner,
-            (false, true) => Pause::Symmetric,
-            (true, true) => Pause::SymmetricAndAsymmetricLocal,
-        }
-    }
-}
-
-impl From<Pause> for AutoNegCap {
-    fn from(pause: Pause) -> Self {
-        match pause {
-            Pause::NoPause => AutoNegCap::empty(),
-            Pause::AsymmetricPartner => AutoNegCap::ASSYMETRIC_PAUSE,
-            Pause::Symmetric => AutoNegCap::PAUSE,
-            Pause::SymmetricAndAsymmetricLocal => AutoNegCap::ASSYMETRIC_PAUSE | AutoNegCap::PAUSE,
-        }
-    }
-}
-
-/// An autonegotiation advertisement.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AutoNegotiationAdvertisement {
-    /// The type of message sent
-    pub selector_field: Option<SelectorField>,
-    /// The PHY supports 10BASE-T
-    pub hd_10base_t: bool,
-    /// The PHY supports 10BASE-T Full Duplex
-    pub fd_10base_t: bool,
-    /// The PHY supports 100BASE-TX
-    pub hd_100base_tx: bool,
-    /// The PHY supports 100BASE-TX Full Duplex
-    pub fd_100base_tx: bool,
-    /// The PHY supports 100BASE-T4
-    pub base100_t4: bool,
-    /// The pause mode supported by the PHY
-    pub pause: Pause,
-}
-
-impl Default for AutoNegotiationAdvertisement {
-    fn default() -> Self {
-        Self {
-            selector_field: Some(SelectorField::default()),
-            hd_10base_t: false,
-            fd_10base_t: false,
-            hd_100base_tx: false,
-            fd_100base_tx: false,
-            base100_t4: false,
-            pause: Default::default(),
-        }
-    }
-}
-
-impl From<AutoNegCap> for AutoNegotiationAdvertisement {
-    fn from(ana: AutoNegCap) -> Self {
-        AutoNegotiationAdvertisement {
-            selector_field: ana.into(),
-            hd_10base_t: ana.contains(AutoNegCap::_10BASET),
-            fd_10base_t: ana.contains(AutoNegCap::_10BASETFD),
-            hd_100base_tx: ana.contains(AutoNegCap::_100BASETX),
-            fd_100base_tx: ana.contains(AutoNegCap::_100BASETXFD),
-            base100_t4: ana.contains(AutoNegCap::_100BASET4),
-            pause: ana.into(),
-        }
-    }
-}
-
-/// An IEEE 802.3 compatible PHY
-pub trait Phy<M: Miim> {
-    /// The best advertisement this PHY can send out.
-    ///
-    /// "Best", in this case, means largest amount of supported features
-    fn best_supported_advertisement(&self) -> AutoNegotiationAdvertisement;
-
-    /// Get a mutable reference to the Media Independent Interface ([`Miim`]) for this PHY
-    fn get_miim(&mut self) -> &mut M;
-
-    /// Get the address of this PHY
-    fn get_phy_addr(&self) -> u8;
-
-    /// Read a PHY register over MIIM
-    fn read(&mut self, address: u8) -> u16 {
-        let phy = self.get_phy_addr();
-        let miim = self.get_miim();
-        miim.read(phy, address)
+    /// Read the register `Register` on this PHY.
+    fn read<R: Register>(&mut self) -> R {
+        let raw = self.read_raw(R::ADDRESS);
+        raw.into()
     }
 
-    /// Write a PHY register over MIIM
-    fn write(&mut self, address: u8, value: u16) {
-        let phy = self.get_phy_addr();
-        let miim = self.get_miim();
-        miim.write(phy, address, value)
+    /// Write the register `Register`.
+    fn write<R: Register>(&mut self, value: R) {
+        let raw = value.into();
+        self.write_raw(R::ADDRESS, raw);
     }
 
-    /// Get the raw value of the Base Control Register of this PHY
-    fn bcr(&mut self) -> Bcr {
-        Bcr::from_bits_truncate(self.read(Bcr::ADDRESS))
-    }
-
-    /// Modify the Base Control Register of this PHY
-    fn modify_bcr<F>(&mut self, f: F)
+    /// Modify the register `Register` on this PHY.
+    fn modify<R: Register, F>(&mut self, f: F)
     where
-        F: FnOnce(&mut Bcr),
+        F: FnOnce(&mut R),
     {
-        let bcr = &mut self.bcr();
-        f(bcr);
-        self.write(Bcr::ADDRESS, bcr.bits());
+        let mut value = self.read();
+        f(&mut value);
+        self.write(value);
     }
 
     /// Check if the PHY is currently resetting
     fn is_resetting(&mut self) -> bool {
-        self.bcr().is_resetting()
+        self.read::<BasicControl>().reset()
     }
 
-    /// Reset the PHY. Verify that the reset by checking
-    /// [`Self::is_resetting`] == false before continuing usage
+    /// Reset the PHY. Verify that the reset has completed by checking
+    /// [`Self::is_resetting`] == false before continuing usage.
     fn reset(&mut self) {
-        self.modify_bcr(|bcr| {
-            bcr.reset(true);
+        self.modify(|bcr: &mut BasicControl| {
+            bcr.set_reset(true);
         });
     }
 
@@ -404,139 +155,217 @@ pub trait Phy<M: Miim> {
     }
 
     /// Get the raw value of the Base Status Register of this PHY
-    fn bsr(&mut self) -> Bsr {
-        Bsr::from_bits_truncate(self.read(Bsr::ADDRESS))
+    fn status(&mut self) -> BasicStatus {
+        self.read()
     }
 
     /// Check if the PHY reports its link as being up
     fn phy_link_up(&mut self) -> bool {
-        self.bsr().phy_link_up()
-    }
-
-    /// Check if the PHY reports its autonegotiation process
-    /// as having completed
-    fn autoneg_completed(&mut self) -> bool {
-        self.bsr().autoneg_completed()
-    }
-
-    /// Read the status register for this PHY
-    fn status(&mut self) -> PhyStatus {
-        self.bsr().into()
-    }
-
-    /// Read the ESR for this PHY. Will return `None` if
-    /// `extended_status` in [`Self::status`] is false.
-    fn esr(&mut self) -> Option<Esr> {
-        if self.status().extended_status {
-            let phy = self.get_phy_addr();
-            let miim = self.get_miim();
-            Some(Esr::from_bits_truncate(miim.read(phy, Esr::ADDRESS)))
-        } else {
-            None
-        }
-    }
-
-    /// Read the Extended Status Register for this PHY.
-    ///
-    /// Returns `None` if `extended_status` in [`Self::status`] is false.
-    fn extended_status(&mut self) -> Option<ExtendedPhyStatus> {
-        self.esr().map(|esr| ExtendedPhyStatus {
-            fd_1000base_x: esr.contains(Esr::_1000BASEXFD),
-            hd_1000base_x: esr.contains(Esr::_1000BASEXHD),
-            fd_1000base_t: esr.contains(Esr::_1000BASETFD),
-            hd_1000base_t: esr.contains(Esr::_1000BASETHD),
-        })
+        self.status().link_status()
     }
 
     /// Read the PHY identifier for this PHY.
     ///
     /// Returns `None` if `extended_capabilities` in [`Self::status`] is false
     fn phy_ident(&mut self) -> Option<PhyIdent> {
-        if self.status().extended_caps {
-            let msb = self.read(2);
-            let lsb = self.read(3);
+        if self.status().extended_capabilities() {
+            let msb = self.read_raw(2);
+            let lsb = self.read_raw(3);
             Some(PhyIdent::new(msb, lsb))
         } else {
             None
         }
     }
 
-    /// Set the autonegotiation advertisement and restarts the autonegotiation
-    /// process
+    /// The best advertisement this PHY supports and restart autonegotation.
     ///
-    /// This is a no-op if `extended_caps` in [`Self::status`] is false
-    fn set_autonegotiation_advertisement(&mut self, ad: AutoNegotiationAdvertisement) {
-        let status = self.status();
-        if !status.extended_caps {
+    /// "Best", in this case, means largest amount of supported features
+    fn set_best_autonegotation_advertisement(&mut self) {
+        let status: BasicStatus = self.read();
+
+        // Extended capabilities are required to configure
+        // autonegotiation.
+        if !status.extended_capabilities() {
             return;
         }
 
-        let mut ana = AutoNegCap::empty();
+        // Extended status == 1000BASE-T able
+        if status.extended_status() {
+            let extended: ExtendedStatus = self.read();
+            let _1000base_t_fd = extended._1000base_t_fd();
+            let _1000base_t_hd = extended._1000base_t_hd();
 
-        if ad.hd_10base_t && status.hd_10mbps {
-            ana.insert(AutoNegCap::_10BASET);
+            self.modify(|r: &mut LeaderFollowerControl| {
+                r.set__1000base_t_fd(_1000base_t_fd);
+                r.set__1000base_t_hd(_1000base_t_hd);
+            });
         }
 
-        if ad.fd_10base_t && status.fd_10mbps {
-            ana.insert(AutoNegCap::_10BASETFD);
-        }
+        // Ignore 100baset4
+        let _100base_x_fd = status._100base_x_fd();
+        let _100base_x_hd = status._100base_x_hd();
+        let _10base_t_fd = status._10base_t_fd();
+        let _10base_t_hd = status._10base_t_hd();
 
-        if ad.hd_100base_tx && status.hd_100base_x {
-            ana.insert(AutoNegCap::_100BASETX);
-        }
+        self.modify(|r: &mut AutonegotiationAdvertisement| {
+            let mut tech_ability = r.technology_ability();
+            tech_ability.set__100base_tx_fd(_100base_x_fd);
+            tech_ability.set__100base_tx_hd(_100base_x_hd);
+            tech_ability.set__10base_t_fd(_10base_t_fd);
+            tech_ability.set__10base_t_hd(_10base_t_hd);
+            r.set_technology_ability(tech_ability);
+        });
 
-        if ad.fd_100base_tx && status.fd_100base_x {
-            ana.insert(AutoNegCap::_100BASETXFD);
-        }
-
-        if ad.base100_t4 {
-            ana.insert(AutoNegCap::_100BASET4);
-        }
-
-        if let Some(selector) = ad.selector_field {
-            ana.insert(selector.into());
-        }
-
-        ana.insert(ad.pause.into());
-
-        self.write(AutoNegCap::LOCAL_CAP_ADDRESS, ana.bits());
-
-        self.modify_bcr(|bcr| {
-            bcr.set_autonegotiation(true).restart_autonegotiation();
+        self.modify(|bcr: &mut BasicControl| {
+            bcr.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: true });
         })
     }
 
-    /// Get the advertised capabilities of this PHY
+    /// Get the current link speed of this PHY.
     ///
-    /// This is a no-op if `extended_caps` in [`Self::status`] is false
-    fn get_autonegotiation_caps(&mut self) -> Option<AutoNegotiationAdvertisement> {
-        let status = self.status();
-        if !status.extended_caps {
-            return None;
+    /// All relevant bits (ignoring 100BASE-T2 and 100BASE-T4) are in IEEE 802.3-2022:
+    /// 22.2.4.1 Control Register (Register 0)
+    /// 22.2.4.2 Status register (Register 1)
+    /// 22.2.4.3.7 MASTER-SLAVE control register (Register 9)
+    ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
+    /// 22.2.4.3.8 MASTER-SLAVE status register (Register 10)
+    ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
+    /// 28.2.4.1.3 Auto-Negotiation advertisement register (Register 4)
+    /// 28.2.4.1.4 Auto-Negotiation Link Partner ability register (Register 5)
+    /// 28.2.4.1.5 Auto-Negotiation expansion register (Register 6) (RO)
+    fn get_link_state(&mut self) -> Result<LinkState, LinkStateError> {
+        let basic_control: BasicControl = self.read();
+        let basic_status: BasicStatus = self.read();
+
+        if !basic_status.link_status() {
+            return Err(LinkStateError::NoLink);
         }
-        let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::LOCAL_CAP_ADDRESS));
-        Some(ana.into())
+
+        // Having extended status is equivalent to being 1000 Mbit capable
+        let has_extended_status = basic_status.extended_status();
+        let gigabit_able = has_extended_status;
+
+        let link_config = basic_control.get_link_config();
+        let autoneg_completed = basic_status.autonegotiation_complete();
+
+        match (link_config, autoneg_completed) {
+            (BasicControlLinkConfig::Manual { duplex, speed }, _) => Ok(LinkState {
+                speed,
+                duplex: match duplex {
+                    Duplex::Half => DuplexMode::Half,
+                    Duplex::Full { .. } => DuplexMode::Full,
+                },
+            }),
+            (BasicControlLinkConfig::Autonegotiate { .. }, false) => {
+                Err(LinkStateError::AutonegotiationNotCompleted)
+            }
+            (BasicControlLinkConfig::Autonegotiate { .. }, true) => {
+                if !basic_status.link_status() {
+                    return Err(LinkStateError::NoLink);
+                }
+
+                if !basic_status.extended_capabilities() {
+                    return Err(LinkStateError::ExtendedCapabilities);
+                }
+
+                let autoneg_exp: AutonegotiationExpansion = self.read();
+                let advertisement: AutonegotiationAdvertisement = self.read();
+
+                if !autoneg_exp.link_partner_autonegotiation_able() {
+                    return Err(LinkStateError::LinkPartnerNotAutonegotiationAble);
+                }
+
+                // Priority resolution as defined in IEEE 802.3-2022, Section 28B.3
+                // 100BASE-T2 and 100BASE-T4 are ignored
+                //
+                // IEEE 802.3-2022, Section 40.5.1.2 mandates that 1000BASE-T PHYs
+                // must send next pages, so using it as indication for whether
+                // the link partner supports gigabit makes sense. Additionally,
+                // we know that our local PHY supports it when gigabit is supported,
+                // so we can just reuse that knowledge.
+                if gigabit_able && autoneg_exp.link_partner_next_page_able() {
+                    let lf_control: LeaderFollowerControl = self.read();
+                    let lf_status: LeaderFollowerStatus = self.read();
+
+                    // LEADER-FOLLOWER advertisement bits only make sense if we
+                    // sent a next page.
+                    let local_next_page = autoneg_exp.next_page_able();
+                    let local_1000_fd = local_next_page && lf_control._1000base_t_fd();
+                    let local_1000_hd = local_next_page && lf_control._1000base_t_hd();
+
+                    // According to 802.3-2022, Table 40-3, the LEADER-FOLLOWER status bits
+                    // are only valid if 6.1 Page Received bit has been set.
+                    //
+                    // However, this bit latches low, which means we can only use it to
+                    // read the correct status once. Instead, we will assume
+                    // that the link partner being next page able is enough of an indication
+                    // of gigabit-ability.
+                    let lp_next_page = autoneg_exp.link_partner_next_page_able();
+                    let lp_1000_fd = lp_next_page && lf_status._1000base_t_fd();
+                    let lp_1000_hd = lp_next_page && lf_status._1000base_t_hd();
+
+                    if local_1000_fd && lp_1000_fd {
+                        return Ok(LinkState {
+                            speed: LinkSpeed::Mbps1000,
+                            duplex: DuplexMode::Full,
+                        });
+                    } else if local_1000_hd && lp_1000_hd {
+                        return Ok(LinkState {
+                            speed: LinkSpeed::Mbps1000,
+                            duplex: DuplexMode::Half,
+                        });
+                    }
+                }
+
+                let local_ta = advertisement.technology_ability();
+
+                let local_100_fd = local_ta._100base_tx_fd();
+                let local_100_hd = local_ta._100base_tx_hd();
+                let local_10_fd = local_ta._10base_t_fd();
+                let local_10_hd = local_ta._10base_t_fd();
+
+                let link_partner_ability: AutonegotiationLinkPartnerAbility = self.read();
+                let lp_ta = link_partner_ability.technology_ability();
+
+                let lp_100_fd = lp_ta._100base_tx_fd();
+                let lp_100_hd = lp_ta._100base_tx_hd();
+                let lp_10_fd = lp_ta._10base_t_fd();
+                let lp_10_hd = lp_ta._10base_t_hd();
+
+                // Priority resolution as defined in IEEE 802.3-2022, Section 28B.3
+                // 100BASE-T2 and 100BASE-T4 are ignored
+                let (speed, duplex) = if local_100_fd && lp_100_fd {
+                    (LinkSpeed::Mbps100, DuplexMode::Full)
+                } else if local_100_hd && lp_100_hd {
+                    (LinkSpeed::Mbps100, DuplexMode::Half)
+                } else if local_10_fd && lp_10_fd {
+                    (LinkSpeed::Mbps10, DuplexMode::Full)
+                } else if local_10_hd && lp_10_hd {
+                    (LinkSpeed::Mbps10, DuplexMode::Half)
+                } else {
+                    return Err(LinkStateError::NoMatchingTechnologies {});
+                };
+
+                Ok(LinkState { speed, duplex })
+            }
+        }
     }
 
-    /// Get the capabilites of the autonegotiation partner of this PHY
+    /// Set the autonegotiation advertisement and restart the autonegotiation
+    /// process
     ///
     /// This is a no-op if `extended_caps` in [`Self::status`] is false
-    fn get_autonegotiation_partner_caps(&mut self) -> Option<AutoNegotiationAdvertisement> {
+    fn set_autonegotiation_advertisement(&mut self, ad: AutonegotiationAdvertisement) {
         let status = self.status();
-        if !status.extended_caps {
-            return None;
+        if !status.extended_capabilities() {
+            return;
         }
-        let ana = AutoNegCap::from_bits_truncate(self.read(AutoNegCap::PARTNER_CAP_ADDRESS));
-        Some(ana.into())
-    }
 
-    /// This returns `None` if `extended_caps` in `Self::status` is `false`
-    fn ane(&mut self) -> Option<Ane> {
-        if self.status().extended_caps {
-            Some(Ane::from_bits_truncate(self.read(Ane::ADDRESS)))
-        } else {
-            None
-        }
+        self.write(ad);
+
+        self.modify(|bcr: &mut BasicControl| {
+            bcr.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: true });
+        })
     }
 
     /// Read an MMD register
@@ -545,7 +374,7 @@ pub trait Phy<M: Miim> {
     where
         Self: Sized,
     {
-        Mmd::read(self, mmd_address, reg_address)
+        Mmd::read(self, mmd_address.into(), reg_address)
     }
 
     /// Write an MMD register
@@ -554,6 +383,114 @@ pub trait Phy<M: Miim> {
     where
         Self: Sized,
     {
-        Mmd::write(self, device_address, reg_address, reg_value)
+        Mmd::write(self, device_address.into(), reg_address, reg_value)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{LinkState, Miim};
+
+    struct MockPhy {
+        registers: [u16; 16],
+    }
+
+    impl Miim for MockPhy {
+        fn read_raw(&mut self, address: u8) -> u16 {
+            self.registers[address as usize]
+        }
+
+        fn write_raw(&mut self, address: u8, value: u16) {
+            self.registers[address as usize] = value;
+        }
+    }
+
+    const GIGABIT_GIGABIT_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1000, 0x79ad, 0x001c, 0xc800, 0x0de1, 0xc1e1, 0x006d, 0x2001,
+            0x6001, 0x0200, 0x3800, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const GIGABIT_100M_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1040, 0x79ad, 0x001c, 0xc800, 0x0de1, 0x51e1, 0x0065, 0x2001,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const GIGABIT_10M_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+        0x1000, 0x79ad, 0x001c, 0xc800, 0x01e1, 0x4061, 0x0067, 0x2801,
+        0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const GIGABIT_AUTONEG_INCOMPLETE: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1000, 0x7989, 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
+        ],
+    };
+
+    #[test]
+    fn autoneg_incomplete() {
+        let mut phy = GIGABIT_AUTONEG_INCOMPLETE;
+
+        let state = phy.get_link_state();
+
+        assert_eq!(
+            state,
+            Err(crate::LinkStateError::AutonegotiationNotCompleted)
+        )
+    }
+
+    #[test]
+    fn link_state_10fd() {
+        let mut phy = GIGABIT_10M_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps10,
+                duplex: crate::registers::DuplexMode::Full
+            }
+        )
+    }
+
+    #[test]
+    fn link_state_100fd() {
+        let mut phy = GIGABIT_100M_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps100,
+                duplex: crate::registers::DuplexMode::Full
+            }
+        )
+    }
+
+    #[test]
+    fn link_state_1gfd() {
+        let mut phy = GIGABIT_GIGABIT_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps1000,
+                duplex: crate::registers::DuplexMode::Full
+            }
+        )
     }
 }
