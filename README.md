@@ -37,18 +37,6 @@ can swap them how you see fit.
 
 More custom PHY implementations are always welcome :)
 
-# Goals
-
-The goals of this project include:
-* Provide as complete of an implementation of the MIIM protocol as possible
-* Provide default implementations for commonly used PHYs, so that they can easily be
-  re-used
-
-# Non-goals
-
-Non-goals of this project include:
-* Provide support for SMI protocols that are not MIIM (i.e. only MDIO)
-
 # License
 This project is licensed under the MIT license.
 
