@@ -31,6 +31,9 @@ pub mod phy;
 pub enum LinkStateError {
     /// No link has been established yet.
     NoLink,
+    /// The PHY is configured for autonegotiation, but it does
+    /// not support autonegotiation.
+    NotAutonegotiationAble,
     /// Autonegotiation is enabled, but has not completed yet.
     AutonegotiationNotCompleted,
     /// An autonegotiating PHY without extended capabilities
@@ -245,6 +248,9 @@ pub trait Miim {
         let has_extended_status = basic_status.extended_status();
         let gigabit_able = has_extended_status;
 
+        // We don't need to check if the PHY is autonegotiation able:
+        // BasicControl must return 0 for autonegotiation enabled on
+        // PHYs that don't support it.
         let link_config = basic_control.get_link_config();
         let autoneg_completed = basic_status.autonegotiation_complete();
 
@@ -260,10 +266,6 @@ pub trait Miim {
                 Err(LinkStateError::AutonegotiationNotCompleted)
             }
             (BasicControlLinkConfig::Autonegotiate { .. }, true) => {
-                if !basic_status.link_status() {
-                    return Err(LinkStateError::NoLink);
-                }
-
                 if !basic_status.extended_capabilities() {
                     return Err(LinkStateError::ExtendedCapabilities);
                 }
