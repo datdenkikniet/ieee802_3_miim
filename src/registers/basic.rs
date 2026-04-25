@@ -14,8 +14,8 @@ use crate::{
 ///
 /// Defined in 22.2.4.2.
 #[bitsize(16)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, FromBits)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct BasicStatus {
     /// Whether this PHY supports the extended capability registers (2-14, 16-31) defined
     /// by the standard.
@@ -76,6 +76,7 @@ impl Register for BasicStatus {
 /// Defined in 22.2.4.4.
 #[bitsize(16)]
 #[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct ExtendedStatus {
     reserved: u12,
     /// The PHY spuports 1000BASE-T, Half-Duplex.
@@ -114,6 +115,7 @@ impl defmt::Format for DuplexMode {
 
 /// Valid duplex mode configurations for [`BasicControl`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Duplex {
     /// Half duplex.
     Half,
@@ -128,6 +130,7 @@ pub enum Duplex {
 
 /// Link mode configurations available in for [`BasicControl`].
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BasicControlLinkConfig {
     /// Use autonegotiation to configure the link state.
     Autonegotiate {
@@ -155,6 +158,7 @@ impl BasicControlLinkConfig {
 /// Defined in 37.2.5.1.1.
 #[bitsize(16)]
 #[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct BasicControl {
     reserved: u5,
     unidirectional_enable: bool,

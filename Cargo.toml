@@ -12,6 +12,7 @@ readme = "README.md"
 
 [features]
 default = [ "lan8720a", "lan8742a", "ksz8081r" ]
+defmt = [ "dep:defmt", "arbitrary-int/defmt", "bilge-defmt" ]
 
 phy = [ ]
 lan8720a = [ "phy", "mmd" ]
@@ -22,3 +23,5 @@ mmd = [ ]
 [dependencies]
 bilge = "0.3.0"
 defmt = { version = "0.3", optional = true }
+bilge-defmt = { version = "0.1.0", optional = true }
+arbitrary-int = { version = "2", optional = true }

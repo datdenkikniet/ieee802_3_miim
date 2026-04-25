@@ -6,8 +6,8 @@ use crate::{Miim, RegisterAddress};
 /// An MDIO PHY address.
 ///
 /// The maximum PHY address is 31.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PhyAddress(u8);
 
 impl PhyAddress {

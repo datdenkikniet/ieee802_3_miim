@@ -15,6 +15,7 @@ use crate::registers::{Register, RegisterAddress};
 /// Specified in section 28.2.4.1.3 and 37.2.5.1.3
 #[bitsize(16)]
 #[derive(FromBits, DebugBits, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct AutonegotiationAdvertisement {
     /// The advertised selector (should be [`Selector::Sel802_3`]).
     pub selector: Selector,
@@ -44,6 +45,7 @@ impl Register for AutonegotiationAdvertisement {
 /// Defined in section 28.2.4.1.4 and 37.2.5.1.4.
 #[bitsize(16)]
 #[derive(FromBits, DebugBits, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct AutonegotiationLinkPartnerAbility {
     /// The selector advertised by the link partner (should be [`Selector::Sel802_3`]).
     pub selector: Selector,
@@ -69,6 +71,7 @@ impl Register for AutonegotiationLinkPartnerAbility {
 /// Defined in section 28.2.4.1.5 and 37.2.5.1.4.
 #[bitsize(16)]
 #[derive(FromBits, DebugBits, Clone, Copy)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct AutonegotiationExpansion {
     /// The link partner is able to perform autonegotiation.
     pub link_partner_autonegotiation_able: bool,
@@ -102,6 +105,7 @@ impl Register for AutonegotiationExpansion {
 /// Defined in Annex 28A.
 #[bitsize(5)]
 #[derive(FromBits, Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[expect(missing_docs)]
 pub enum Selector {
     Sel802_3 = 0b00001,
@@ -118,6 +122,7 @@ pub enum Selector {
 /// Defined in Annex 28B.2 and 28D.
 #[bitsize(7)]
 #[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct TechnologyAbility {
     /// Supports 10BASE-T, Half-Duplex.
     pub _10base_t_hd: bool,

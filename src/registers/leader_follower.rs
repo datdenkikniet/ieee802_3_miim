@@ -7,6 +7,7 @@ use crate::registers::{Register, RegisterAddress};
 /// The resolved or preference of port type.
 #[bitsize(1)]
 #[derive(Clone, Copy, FromBits, Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PortType {
     /// The port is a leader.
     Leader,
@@ -23,6 +24,7 @@ pub enum PortType {
 /// Defined in 40.5.1.1.
 #[bitsize(16)]
 #[derive(Clone, Copy, FromBits, DebugBits)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct LeaderFollowerControl {
     reserved: u8,
     /// Advertise 1000BASE-T Half Duplex during
@@ -57,6 +59,7 @@ impl Register for LeaderFollowerControl {
 /// Defined in 40.5.1.1.
 #[bitsize(16)]
 #[derive(Clone, Copy, FromBits, DebugBits)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct LeaderFollowerStatus {
     /// The cumulative count of errors detected when the
     /// receiver is receiving idles.

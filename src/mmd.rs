@@ -6,6 +6,7 @@ use crate::{Miim, RegisterAddress};
 
 #[bitsize(2)]
 #[derive(FromBits, Debug)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AccessMode {
     Address = 0b00,
     Data = 0b01,
@@ -15,7 +16,8 @@ pub enum AccessMode {
 
 // Register 13
 #[bitsize(16)]
-#[derive(FromBits, DebugBits)]
+#[derive(Clone, Copy, DebugBits, FromBits)]
+#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct MmdAccessControl {
     pub device_address: u5,
     pub reserved: u9,

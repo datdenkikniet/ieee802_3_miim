@@ -27,8 +27,8 @@ pub mod phy;
 /// A MIIM register address.
 ///
 /// The maximum MIIM register address is 31.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct RegisterAddress(u8);
 
 impl RegisterAddress {
@@ -51,8 +51,8 @@ impl RegisterAddress {
 
 /// Errors that can occur when attempting to determine
 /// the state of a link.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LinkStateError {
     /// No link has been established yet.
     NoLink,
@@ -73,8 +73,8 @@ pub enum LinkStateError {
 }
 
 /// The state of a link.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LinkState {
     /// The speed of the link.
     pub speed: LinkSpeed,
@@ -83,8 +83,8 @@ pub struct LinkState {
 }
 
 /// All basic link speeds possibly supported by the PHY.
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LinkSpeed {
     /// 1000 Mbps
     Mbps1000,
@@ -95,8 +95,8 @@ pub enum LinkSpeed {
 }
 
 /// The PHY IDENT of this PHY
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PhyIdent(u16, u16);
 
 impl PhyIdent {
