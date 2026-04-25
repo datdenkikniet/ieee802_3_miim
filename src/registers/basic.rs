@@ -3,7 +3,7 @@
 use bilge::{bitsize, prelude::*, FromBits};
 
 use crate::{
-    registers::{RegisterAddress, Register},
+    registers::{Register, RegisterAddress},
     LinkSpeed,
 };
 
@@ -35,12 +35,11 @@ pub struct BasicStatus {
     /// Once this bit is set, the auto negotiation registers for
     /// the PHY are valid.
     pub autonegotiation_complete: bool,
-    /// From 22.2.4.2.9:
+    /// Whether this PHY supports reading management frames without
+    /// management preamble.
     ///
-    /// "When read as a logic one, bit 1.6 indicates that the PHY is able to accept management frames regardless of
-    /// whether they are or are not preceded by the preamble pattern described in 22.2.4.5.2. When read as a logic
-    /// zero, bit 1.6 indicates that the PHY is not able to accept management frames unless they are preceded by the
-    /// preamble pattern described in 22.2.4.5.2."
+    /// See 22.2.4.6.2 for more information about what this bit
+    /// can be used for.
     pub mf_preamble_suppression: bool,
     /// Whether this PHY supports transmitting regardless of whether
     /// it has established a valid link.
@@ -101,6 +100,16 @@ pub enum DuplexMode {
     Half = 0,
     /// Full duplex.
     Full = 1,
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for DuplexMode {
+    fn format(&self, fmt: defmt::Formatter) {
+        match self {
+            DuplexMode::Half => defmt::write!(fmt, "DuplexMode::Half"),
+            DuplexMode::Full => defmt::write!(fmt, "DuplexMode::Full"),
+        }
+    }
 }
 
 /// Valid duplex mode configurations for [`BasicControl`].

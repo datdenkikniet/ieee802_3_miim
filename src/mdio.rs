@@ -62,7 +62,11 @@ pub struct MdioPhy<M: Mdio> {
 }
 
 #[cfg(feature = "defmt")]
-impl<M: Mdio> defmt::Format for MdioPhy<M> {}
+impl<M: Mdio> defmt::Format for MdioPhy<M> {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "MdioPhy {{ address: {} }}", self.address)
+    }
+}
 
 impl<M: Mdio> MdioPhy<M> {
     /// Create a struct for managing a device on bus `mdio` at
