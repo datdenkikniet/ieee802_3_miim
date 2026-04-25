@@ -96,21 +96,12 @@ impl Register for ExtendedStatus {
 /// A duplex mode.
 #[bitsize(1)]
 #[derive(Clone, Copy, Debug, FromBits, PartialEq, Eq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DuplexMode {
     /// Half duplex.
     Half = 0,
     /// Full duplex.
     Full = 1,
-}
-
-#[cfg(feature = "defmt")]
-impl defmt::Format for DuplexMode {
-    fn format(&self, fmt: defmt::Formatter) {
-        match self {
-            DuplexMode::Half => defmt::write!(fmt, "DuplexMode::Half"),
-            DuplexMode::Full => defmt::write!(fmt, "DuplexMode::Full"),
-        }
-    }
 }
 
 /// Valid duplex mode configurations for [`BasicControl`].
