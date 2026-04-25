@@ -14,7 +14,7 @@ use crate::{
 ///
 /// Defined in 22.2.4.2.
 #[bitsize(16)]
-#[derive(Clone, Copy, FromBits)]
+#[derive(Clone, Copy, DebugBits, FromBits)]
 #[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct BasicStatus {
     /// Whether this PHY supports the extended capability registers (2-14, 16-31) defined

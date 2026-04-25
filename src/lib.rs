@@ -460,7 +460,7 @@ mod test {
         ],
     };
 
-    const GIGABIT_AUTONEG_INCOMPLETE: MockPhy = MockPhy {
+    const LINK_NOT_UP: MockPhy = MockPhy {
         #[rustfmt::skip]
         registers: [
             0x1000, 0x7989, 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
@@ -468,9 +468,27 @@ mod test {
         ],
     };
 
+    const AUTONEG_INCOMPLETE: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            // Same as LINK_NOT_UP, but with link status bit set
+            0x1000, 0x7989 | (1 << 2), 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
+        ],
+    };
+
+    #[test]
+    fn link_not_up() {
+        let mut phy = LINK_NOT_UP;
+
+        let state = phy.get_link_state();
+
+        assert_eq!(state, Err(crate::LinkStateError::NoLink))
+    }
+
     #[test]
     fn autoneg_incomplete() {
-        let mut phy = GIGABIT_AUTONEG_INCOMPLETE;
+        let mut phy = AUTONEG_INCOMPLETE;
 
         let state = phy.get_link_state();
 
