@@ -1,6 +1,6 @@
 //! Phy implementation for the Microchip KSZ8081R
 
-use crate::Miim;
+use crate::{Miim, RegisterAddress};
 
 /// A KSZ8081R
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub struct KSZ8081R<MIIM: Miim> {
 }
 
 impl<MIIM: Miim> KSZ8081R<MIIM> {
-    const INTERRUPT_REG: u8 = 0x1B;
+    const INTERRUPT_REG: RegisterAddress = RegisterAddress::new(0x1B).unwrap();
     const INTERRUPT_REG_EN_LINK_UP: u16 = 1 << 8;
     const INTERRUPT_REG_EN_LINK_DOWN: u16 = 1 << 10;
 
@@ -42,11 +42,11 @@ impl<MIIM: Miim> KSZ8081R<MIIM> {
 }
 
 impl<MIIM: Miim> Miim for KSZ8081R<MIIM> {
-    fn read_raw(&mut self, address: u8) -> u16 {
+    fn read_raw(&mut self, address: RegisterAddress) -> u16 {
         self.miim.read_raw(address)
     }
 
-    fn write_raw(&mut self, address: u8, value: u16) {
+    fn write_raw(&mut self, address: RegisterAddress, value: u16) {
         self.miim.write_raw(address, value);
     }
 }

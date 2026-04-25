@@ -2,7 +2,10 @@
 
 use bilge::{bitsize, prelude::*, FromBits};
 
-use crate::{registers::Register, LinkSpeed};
+use crate::{
+    registers::{RegisterAddress, Register},
+    LinkSpeed,
+};
 
 /// The Status Register
 ///
@@ -61,7 +64,7 @@ pub struct BasicStatus {
 }
 
 impl Register for BasicStatus {
-    const ADDRESS: u8 = 1;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(1).unwrap();
 }
 
 /// The extended status register, containing additional status bits.
@@ -87,7 +90,7 @@ pub struct ExtendedStatus {
 }
 
 impl Register for ExtendedStatus {
-    const ADDRESS: u8 = 15;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(15).unwrap();
 }
 
 /// A duplex mode.
@@ -227,5 +230,5 @@ impl BasicControl {
 }
 
 impl Register for BasicControl {
-    const ADDRESS: u8 = 0;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(0).unwrap();
 }

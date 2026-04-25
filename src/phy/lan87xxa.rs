@@ -2,7 +2,7 @@
 
 use crate::{
     phy::lan87xxa::registers::{InterruptMask, InterruptSource},
-    Miim,
+    Miim, RegisterAddress,
 };
 
 use self::registers::PHY_REG_WUCSR;
@@ -85,11 +85,11 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
 }
 
 impl<M: Miim, const E: bool> Miim for LAN87xxA<M, E> {
-    fn read_raw(&mut self, address: u8) -> u16 {
+    fn read_raw(&mut self, address: RegisterAddress) -> u16 {
         self.miim.read_raw(address)
     }
 
-    fn write_raw(&mut self, address: u8, value: u16) {
+    fn write_raw(&mut self, address: RegisterAddress, value: u16) {
         self.miim.write_raw(address, value);
     }
 }
@@ -100,7 +100,7 @@ pub mod registers {
 
     use bilge::{bitsize, prelude::*};
 
-    use crate::registers::Register;
+    use crate::{registers::Register, RegisterAddress};
 
     pub const PHY_REG_WUCSR: u16 = 0x8010;
 
@@ -121,7 +121,7 @@ pub mod registers {
     }
 
     impl Register for InterruptSource {
-        const ADDRESS: u8 = 29;
+        const ADDRESS: RegisterAddress = RegisterAddress::new(29).unwrap();
     }
 
     #[bitsize(16)]
@@ -141,6 +141,6 @@ pub mod registers {
     }
 
     impl Register for InterruptMask {
-        const ADDRESS: u8 = 30;
+        const ADDRESS: RegisterAddress = RegisterAddress::new(30).unwrap();
     }
 }

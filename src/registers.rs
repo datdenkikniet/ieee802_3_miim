@@ -36,8 +36,10 @@ pub use basic::{
     BasicControl, BasicControlLinkConfig, BasicStatus, Duplex, DuplexMode, ExtendedStatus,
 };
 
+use crate::RegisterAddress;
+
 /// An MIIM register.
 pub trait Register: Into<u16> + From<u16> {
     /// The MIIM address of the register.
-    const ADDRESS: u8;
+    const ADDRESS: RegisterAddress;
 }

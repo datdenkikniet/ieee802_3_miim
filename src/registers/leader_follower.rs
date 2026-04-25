@@ -2,7 +2,7 @@
 
 use bilge::{bitsize, prelude::*, FromBits};
 
-use crate::registers::Register;
+use crate::registers::{Register, RegisterAddress};
 
 /// The resolved or preference of port type.
 #[bitsize(1)]
@@ -45,7 +45,7 @@ pub struct LeaderFollowerControl {
 }
 
 impl Register for LeaderFollowerControl {
-    const ADDRESS: u8 = 9;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(9).unwrap();
 }
 
 /// The leader-follower status register.
@@ -84,5 +84,5 @@ pub struct LeaderFollowerStatus {
 }
 
 impl Register for LeaderFollowerStatus {
-    const ADDRESS: u8 = 10;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(10).unwrap();
 }

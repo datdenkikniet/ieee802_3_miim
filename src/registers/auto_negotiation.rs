@@ -6,7 +6,7 @@
 
 use bilge::{bitsize, prelude::*, FromBits};
 
-use crate::registers::Register;
+use crate::registers::{Register, RegisterAddress};
 
 /// The auto negotiation advertisement register, containing (part of)
 /// the information that this PHY advertises to its autonegotiation
@@ -35,7 +35,7 @@ pub struct AutonegotiationAdvertisement {
 }
 
 impl Register for AutonegotiationAdvertisement {
-    const ADDRESS: u8 = 4;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(4).unwrap();
 }
 
 /// The auto negotiation link partner ability register, containing (part of)
@@ -61,7 +61,7 @@ pub struct AutonegotiationLinkPartnerAbility {
 }
 
 impl Register for AutonegotiationLinkPartnerAbility {
-    const ADDRESS: u8 = 5;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(5).unwrap();
 }
 
 /// The autonegotiation expansion register.
@@ -94,7 +94,7 @@ pub struct AutonegotiationExpansion {
 }
 
 impl Register for AutonegotiationExpansion {
-    const ADDRESS: u8 = 6;
+    const ADDRESS: RegisterAddress = RegisterAddress::new(6).unwrap();
 }
 
 /// A selector indicating the exact standard that a PHY implements.

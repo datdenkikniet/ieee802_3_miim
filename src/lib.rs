@@ -24,6 +24,31 @@ use crate::registers::{
 #[cfg(feature = "phy")]
 pub mod phy;
 
+/// A MIIM register address.
+///
+/// The maximum MIIM register address is 31.
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct RegisterAddress(u8);
+
+impl RegisterAddress {
+    /// Create a new register address.
+    ///
+    /// Returns `None` if `value > 31`.
+    pub const fn new(value: u8) -> Option<Self> {
+        if value < 32 {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
+    /// Get the value of this address.
+    pub const fn get(&self) -> u8 {
+        self.0
+    }
+}
+
 /// Errors that can occur when attempting to determine
 /// the state of a link.
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -111,10 +136,10 @@ impl PhyIdent {
 /// Interface.
 pub trait Miim {
     /// Read the MIIM register at `address`.
-    fn read_raw(&mut self, address: u8) -> u16;
+    fn read_raw(&mut self, address: RegisterAddress) -> u16;
 
     /// Write `value` to the MIIM register at `address`.
-    fn write_raw(&mut self, address: u8, value: u16);
+    fn write_raw(&mut self, address: RegisterAddress, value: u16);
 
     /// Read the register `Register` on this PHY.
     fn read<R: Register>(&mut self) -> R {
@@ -172,8 +197,11 @@ pub trait Miim {
     /// Returns `None` if `extended_capabilities` in [`Self::status`] is false
     fn phy_ident(&mut self) -> Option<PhyIdent> {
         if self.status().extended_capabilities() {
-            let msb = self.read_raw(2);
-            let lsb = self.read_raw(3);
+            const PHY_IDENT_1: RegisterAddress = RegisterAddress::new(2).unwrap();
+            const PHY_IDENT_2: RegisterAddress = RegisterAddress::new(3).unwrap();
+
+            let msb = self.read_raw(PHY_IDENT_1);
+            let lsb = self.read_raw(PHY_IDENT_2);
             Some(PhyIdent::new(msb, lsb))
         } else {
             None
@@ -391,19 +419,19 @@ pub trait Miim {
 
 #[cfg(test)]
 mod test {
-    use crate::{LinkState, Miim};
+    use crate::{LinkState, Miim, RegisterAddress};
 
     struct MockPhy {
         registers: [u16; 16],
     }
 
     impl Miim for MockPhy {
-        fn read_raw(&mut self, address: u8) -> u16 {
-            self.registers[address as usize]
+        fn read_raw(&mut self, address: RegisterAddress) -> u16 {
+            self.registers[address.get() as usize]
         }
 
-        fn write_raw(&mut self, address: u8, value: u16) {
-            self.registers[address as usize] = value;
+        fn write_raw(&mut self, address: RegisterAddress, value: u16) {
+            self.registers[address.get() as usize] = value;
         }
     }
 

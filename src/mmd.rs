@@ -2,7 +2,7 @@
 
 use bilge::{bitsize, prelude::*, FromBits};
 
-use crate::Miim;
+use crate::{Miim, RegisterAddress};
 
 #[bitsize(2)]
 #[derive(FromBits, Debug)]
@@ -23,8 +23,8 @@ pub struct MmdAccessControl {
 }
 
 impl MmdAccessControl {
-    const CONTROL_REG: u8 = 13;
-    const DATA_ADDRESS_REG: u8 = 14;
+    const CONTROL_REG: RegisterAddress = RegisterAddress::new(13).unwrap();
+    const DATA_ADDRESS_REG: RegisterAddress = RegisterAddress::new(14).unwrap();
 }
 
 pub struct Mmd;

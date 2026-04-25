@@ -1,6 +1,6 @@
 use crate::{
     registers::{BasicStatus, DuplexMode},
-    LinkSpeed, LinkStateError, Miim,
+    LinkSpeed, LinkStateError, Miim, RegisterAddress,
 };
 
 /// A LAN8770 PHY.
@@ -18,11 +18,11 @@ impl<MIIM: Miim> Lan8770<MIIM> {
 }
 
 impl<MIIM: Miim> Miim for Lan8770<MIIM> {
-    fn read_raw(&mut self, address: u8) -> u16 {
+    fn read_raw(&mut self, address: RegisterAddress) -> u16 {
         self.miim.read_raw(address)
     }
 
-    fn write_raw(&mut self, address: u8, value: u16) {
+    fn write_raw(&mut self, address: RegisterAddress, value: u16) {
         self.miim.write_raw(address, value)
     }
 
