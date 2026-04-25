@@ -8,6 +8,7 @@ pub mod mdio;
 
 #[cfg(feature = "mmd")]
 mod mmd;
+
 #[cfg(feature = "mmd")]
 use mmd::Mmd;
 
@@ -400,20 +401,20 @@ pub trait Miim {
 
     /// Read an MMD register
     #[cfg(feature = "mmd")]
-    fn mmd_read(&mut self, mmd_address: u8, reg_address: u16) -> u16
+    fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16
     where
         Self: Sized,
     {
-        Mmd::read(self, mmd_address.into(), reg_address)
+        Mmd::read(self, device_address, reg_address)
     }
 
     /// Write an MMD register
     #[cfg(feature = "mmd")]
-    fn mmd_write(&mut self, device_address: u8, reg_address: u16, reg_value: u16)
+    fn mmd_write(&mut self, device_address: bilge::prelude::u5, reg_address: u16, reg_value: u16)
     where
         Self: Sized,
     {
-        Mmd::write(self, device_address.into(), reg_address, reg_value)
+        Mmd::write(self, device_address, reg_address, reg_value)
     }
 }
 

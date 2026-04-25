@@ -57,7 +57,7 @@ impl<M: Miim, const HAS_MMD: bool> LAN87xxA<M, HAS_MMD> {
     pub fn phy_init(&mut self) {
         if HAS_MMD {
             // Clear WU CSR to enable the interface.
-            self.mmd_write(3, PHY_REG_WUCSR, 0);
+            self.mmd_write(bilge::prelude::u5::new(3u8), PHY_REG_WUCSR, 0);
         }
     }
 
