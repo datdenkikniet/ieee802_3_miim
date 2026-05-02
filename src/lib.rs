@@ -7,7 +7,7 @@
 pub mod mdio;
 
 #[cfg(feature = "mmd")]
-mod mmd;
+pub mod mmd;
 
 #[cfg(feature = "mmd")]
 use mmd::Mmd;
@@ -137,9 +137,15 @@ impl PhyIdent {
 /// Interface.
 pub trait Miim {
     /// Read the MIIM register at `address`.
+    ///
+    /// This is a read as specified by Clause 22 of
+    /// the standard.
     fn read_raw(&mut self, address: RegisterAddress) -> u16;
 
     /// Write `value` to the MIIM register at `address`.
+    ///
+    /// This is a write as specified by Clause 22 of
+    /// the standard.
     fn write_raw(&mut self, address: RegisterAddress, value: u16);
 
     /// Read the register `Register` on this PHY.
@@ -400,6 +406,11 @@ pub trait Miim {
     }
 
     /// Read an MMD register
+    ///
+    /// This is a read as specified by Clause 45 of
+    /// the standard. The default implementation uses
+    /// Clause 22 reads (see [`Mmd::read`]) to perform
+    /// this operation.
     #[cfg(feature = "mmd")]
     fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16
     where
@@ -409,6 +420,11 @@ pub trait Miim {
     }
 
     /// Write an MMD register
+    ///
+    /// This is a write as specified by Clause 45 of
+    /// the standard. The default implementation uses
+    /// Clause 22 writes (see [`Mmd::write`]) to perform
+    /// this operation.
     #[cfg(feature = "mmd")]
     fn mmd_write(&mut self, device_address: bilge::prelude::u5, reg_address: u16, reg_value: u16)
     where
