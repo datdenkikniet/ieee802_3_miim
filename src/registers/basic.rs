@@ -212,6 +212,7 @@ impl BasicControl {
                 self.set_restart_autonegotiation(restart);
             }
             BasicControlLinkConfig::Manual { duplex, speed } => {
+                self.set_autonegotiation_enable(false);
                 match duplex {
                     Duplex::Half => self.set_duplex_mode(DuplexMode::Half),
                     Duplex::Full { unidirectional } => {
@@ -235,4 +236,28 @@ impl BasicControl {
 
 impl Register for BasicControl {
     const ADDRESS: RegisterAddress = RegisterAddress::new(0).unwrap();
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        registers::{BasicControl, DuplexMode},
+        LinkSpeed,
+    };
+
+    use super::{BasicControlLinkConfig, Duplex};
+
+    #[test]
+    fn set_manual_mode_disables_autonegotiation() {
+        let mut status = BasicControl::from(0);
+        status.set_link_config(BasicControlLinkConfig::Manual {
+            duplex: Duplex::Half,
+            speed: LinkSpeed::Mbps100,
+        });
+
+        assert!(!status.autonegotiation_enable());
+        assert!(status.speed_sel_lsb());
+        assert!(!status.speed_sel_msb());
+        assert_eq!(status.duplex_mode(), DuplexMode::Half);
+    }
 }

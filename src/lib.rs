@@ -259,7 +259,7 @@ pub trait Miim {
         })
     }
 
-    /// Get the current link speed of this PHY.
+    /// Get the current link state of this PHY.
     ///
     /// All relevant bits (ignoring 100BASE-T2 and 100BASE-T4) are in IEEE 802.3-2022:
     /// * 22.2.4.1 Control Register (Register 0)
