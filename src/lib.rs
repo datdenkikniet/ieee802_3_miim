@@ -60,14 +60,14 @@ pub enum LinkStateError {
     NotAutonegotiationAble,
     /// Autonegotiation is enabled, but has not completed yet.
     AutonegotiationNotCompleted,
-    /// An autonegotiating PHY without extended capabilities
-    /// was encountered. Reading out the link state for such
-    /// a PHY is not possible due to missing register.
+    /// Autonegotiation is enabled, but the PHY does not support extended
+    /// capabilities. This means that it lacks the registers required to
+    /// read out the autonegotiation status, so the status cannot be read out.
     ExtendedCapabilities,
-    /// The link partner does not support auto negotiation.
+    /// Autonegotiation is enabled, but he link partner does not support auto negotiation.
     LinkPartnerNotAutonegotiationAble,
     /// None of the technologies supported by this PHY
-    /// are supported by the link partner, and vice-versa.
+    /// are supported by the autonegotitation link partner, and vice-versa.
     NoMatchingTechnologies,
 }
 
@@ -174,20 +174,20 @@ pub trait Miim {
     }
 
     /// Reset the PHY. Verify that the reset has completed by checking
-    /// [`Self::is_resetting`] == false before continuing usage.
+    /// [`Self::is_resetting() == false`][Self::is_resetting] before continuing usage.
     fn reset(&mut self) {
         self.modify(|bcr: &mut BasicControl| {
             bcr.set_reset(true);
         });
     }
 
-    /// Perform a reset, blocking until the reset is completed
+    /// Perform a reset and block until the reset has completed
     fn blocking_reset(&mut self) {
         self.reset();
         while self.is_resetting() {}
     }
 
-    /// Get the raw value of the Base Status Register of this PHY
+    /// Read the basic status register for this PHY.
     fn status(&mut self) -> BasicStatus {
         self.read()
     }
@@ -199,7 +199,8 @@ pub trait Miim {
 
     /// Read the PHY identifier for this PHY.
     ///
-    /// Returns `None` if `extended_capabilities` in [`Self::status`] is false
+    /// Returns `None` if the PHY does not support extended capabilities, i.e.
+    /// [`Self::status().extended_capabilities() == false`][Self::status]
     fn phy_ident(&mut self) -> Option<PhyIdent> {
         if self.status().extended_capabilities() {
             const PHY_IDENT_1: RegisterAddress = RegisterAddress::new(2).unwrap();
@@ -378,7 +379,7 @@ pub trait Miim {
                 } else if local_10_hd && lp_10_hd {
                     (LinkSpeed::Mbps10, DuplexMode::Half)
                 } else {
-                    return Err(LinkStateError::NoMatchingTechnologies {});
+                    return Err(LinkStateError::NoMatchingTechnologies);
                 };
 
                 Ok(LinkState { speed, duplex })
@@ -389,7 +390,8 @@ pub trait Miim {
     /// Set the autonegotiation advertisement and restart the autonegotiation
     /// process
     ///
-    /// This is a no-op if `extended_caps` in [`Self::status`] is false
+    /// This is a no-op if the PHY does not support extended capabilities, i.e.
+    /// [`Self::status().extended_capabilities() == false`][Self::status]
     fn set_autonegotiation_advertisement(&mut self, ad: AutonegotiationAdvertisement) {
         let status = self.status();
         if !status.extended_capabilities() {
