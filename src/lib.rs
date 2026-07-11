@@ -1,8 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 #![deny(missing_docs)]
-
-//! A crate that provides access to the MIIM interface described
-//! by IEEE standard 802.3
+#![doc = include_str!("../README.md")]
 
 pub mod mdio;
 

@@ -1,5 +1,9 @@
 //! This module contains definitions of all MIIM registers.
 //!
+//! Currently, these registers do not provide a `Default` implementation, as picking
+//! a sensible default is difficult or impossible. However, all registers _do_ implement
+//! [`From<u16>`], which means that they can easily be constructed using `From::from(0)`.
+//!
 //! These register definitions are based on IEEE 802.3-2022
 
 // 0x0: basic
