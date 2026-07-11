@@ -262,15 +262,15 @@ pub trait Miim {
     /// Get the current link speed of this PHY.
     ///
     /// All relevant bits (ignoring 100BASE-T2 and 100BASE-T4) are in IEEE 802.3-2022:
-    /// 22.2.4.1 Control Register (Register 0)
-    /// 22.2.4.2 Status register (Register 1)
-    /// 22.2.4.3.7 MASTER-SLAVE control register (Register 9)
+    /// * 22.2.4.1 Control Register (Register 0)
+    /// * 22.2.4.2 Status register (Register 1)
+    /// * 22.2.4.3.7 MASTER-SLAVE control register (Register 9)
     ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
-    /// 22.2.4.3.8 MASTER-SLAVE status register (Register 10)
+    /// * 22.2.4.3.8 MASTER-SLAVE status register (Register 10)
     ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
-    /// 28.2.4.1.3 Auto-Negotiation advertisement register (Register 4)
-    /// 28.2.4.1.4 Auto-Negotiation Link Partner ability register (Register 5)
-    /// 28.2.4.1.5 Auto-Negotiation expansion register (Register 6) (RO)
+    /// * 28.2.4.1.3 Auto-Negotiation advertisement register (Register 4)
+    /// * 28.2.4.1.4 Auto-Negotiation Link Partner ability register (Register 5)
+    /// * 28.2.4.1.5 Auto-Negotiation expansion register (Register 6) (RO)
     fn get_link_state(&mut self) -> Result<LinkState, LinkStateError> {
         let basic_control: BasicControl = self.read();
         let basic_status: BasicStatus = self.read();
