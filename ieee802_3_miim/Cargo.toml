@@ -8,7 +8,7 @@ description = "A crate provides abstractions for the IEEE 802.3 Media Indepedent
 homepage = "https://github.com/datdenkikniet/ieee802_3_miim"
 keywords = ["ethernet"]
 categories = ["embedded", "no-std", "hardware-support"]
-readme = "README.md"
+readme = "../README.md"
 
 [features]
 default = [ "lan8720a", "lan8742a", "ksz8081r" ]
