@@ -1,0 +1,19 @@
+[package]
+name = "phys"
+version = "0.1.0-pre"
+edition = "2021"
+authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "PHY drivers for the ieee802_3_miim crate"
+homepage = "https://github.com/datdenkikniet/ieee802_3_miim"
+keywords = ["ethernet"]
+categories = ["embedded", "no-std", "hardware-support"]
+readme = "README.md"
+
+[dependencies]
+ieee802_3_miim = { path = "../ieee802_3_miim", version = "0.9.1" }
+
+[features]
+lan8720a = [ "ieee802_3_miim/mmd" ]
+lan8742a = [ "ieee802_3_miim/mmd" ]
+ksz8081r = [  ]

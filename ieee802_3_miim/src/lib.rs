@@ -20,9 +20,6 @@ use crate::registers::{
     leader_follower::{LeaderFollowerControl, LeaderFollowerStatus},
 };
 
-#[cfg(feature = "phy")]
-pub mod phy;
-
 /// A MIIM register address.
 ///
 /// The maximum MIIM register address is 31.

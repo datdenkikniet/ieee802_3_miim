@@ -4,20 +4,16 @@ version = "0.9.1"
 edition = "2021"
 authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
 license = "MIT OR Apache-2.0"
-description = "A crate provides abstractions for the IEEE 802.3 Media Indepedent Interface, providing access to registers defined in the standard, and with optional implementations of this abstraction for commonly used PHYs"
+description = "A crate provides abstractions for the IEEE 802.3 Media Indepedent Interface, providing access to registers defined in the standard"
 homepage = "https://github.com/datdenkikniet/ieee802_3_miim"
 keywords = ["ethernet"]
 categories = ["embedded", "no-std", "hardware-support"]
 readme = "../README.md"
 
 [features]
-default = [ "lan8720a", "lan8742a", "ksz8081r" ]
+default = [ "mmd" ]
 defmt = [ "dep:defmt", "bilge-defmt" ]
 
-phy = [ ]
-lan8720a = [ "phy", "mmd" ]
-lan8742a = [ "phy", "mmd" ]
-ksz8081r = [ "phy" ]
 mmd = [ ]
 
 [dependencies]
@@ -27,3 +23,7 @@ bilge-defmt = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
 nix = "0.31.2"
+
+[[example]]
+name = "phytool"
+required-features = [ "mmd" ]

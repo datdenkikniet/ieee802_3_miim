@@ -40,8 +40,8 @@ HALs can provide the following:
 
 ## PHY driver authors
 
-PHY drivers should, in general, aim to use an instance of [`Miim`] to perform their operations. See the example implemetations in the [`phy`]
-module for how to use it.
+PHY drivers should, in general, aim to use an instance of [`Miim`] to perform their operations. See the example implemetations in the [`phys`]
+crate for more information.
 
 Additionally, it is recommended that you implement [`Miim`] for your PHY itself, delegating to the [`Miim`] implementation that it owns: this way,
 all functionality provided by the trait will be available to users of your driver, practically for free. Make sure to also re-export the trait
@@ -60,7 +60,6 @@ can swap them however you see fit.
 More custom PHY implementations are always welcome :)
 
 [`Mdio`]: crate::mdio::Mdio
-[`phy`]: crate::phy
 [`MdioPhy`]: crate::mdio::MdioPhy
 [`Miim`]: crate::Miim
 [`Miim::get_link_state`]: crate::Miim::get_link_state
