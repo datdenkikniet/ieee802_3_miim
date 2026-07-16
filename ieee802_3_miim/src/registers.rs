@@ -1,9 +1,5 @@
 //! MIIM register definitions.
 //!
-//! Currently, these registers do not provide a `Default` implementation, as picking
-//! a sensible default is difficult or impossible. However, all registers _do_ implement
-//! [`From<u16>`], which means that they can easily be constructed using `From::from(0)`.
-//!
 //! The `ID1` and `ID2` registers are not supported directly in this module. To access them,
 //! see [`Miim::phy_ident`](crate::Miim::phy_ident).
 //!
@@ -25,6 +21,26 @@
 // 0xd: MMD
 // 0xe: MMD
 // 0xf: basic
+
+fn assert_default<T: Default>() {}
+
+macro_rules! from_into {
+    ($name:ident) => {
+        impl From<u16> for $name {
+            fn from(value: u16) -> Self {
+                $name::new_with_raw_value(value)
+            }
+        }
+
+        impl From<$name> for u16 {
+            fn from(value: $name) -> Self {
+                crate::registers::assert_default::<$name>();
+
+                value.raw_value()
+            }
+        }
+    };
+}
 
 // Reg 2 and 3 are PHY ident and are handled at a higher
 // level.
