@@ -49,10 +49,7 @@ from your crate if you choose to do this.
 
 # Non-generic PHYs
 
-This crate also provides some PHY implementations (`ieee802_3_miim::phy`), containing specialized functionality for those PHYs:
-* Interrupt configuration through vendor-specific MIIM registers (`lan87xxa`, `ksz8081r`)
-* Custom PHY initialization sequences (`lan87xxa`)
-* Custom speed detection implementation for fixed-function PHYs (`lan8770`)
+This crate has a companion crate, [`phys`], which provides PHY-specific implementations.
 
 However, these PHYs _also_ implement [`Miim`], so if your code is generic over an `impl Miim`, you
 can swap them however you see fit.
@@ -63,6 +60,7 @@ More custom PHY implementations are always welcome :)
 [`MdioPhy`]: crate::mdio::MdioPhy
 [`Miim`]: crate::Miim
 [`Miim::get_link_state`]: crate::Miim::get_link_state
+[`phys`]: https://docs.rs/phys
 
 # License
 This project is licensed under the MIT license.
