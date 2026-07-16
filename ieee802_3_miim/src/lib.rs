@@ -293,7 +293,7 @@ pub trait Miim {
     /// this operation.
     #[doc(alias = "clause45_read")]
     #[doc(alias = "clause 45")]
-    fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16
+    fn mmd_read(&mut self, device_address: arbitrary_int::u5, reg_address: u16) -> u16
     where
         Self: Sized,
     {
@@ -308,7 +308,7 @@ pub trait Miim {
     /// this operation.
     #[doc(alias = "clause45_write")]
     #[doc(alias = "clause 45")]
-    fn mmd_write(&mut self, device_address: bilge::prelude::u5, reg_address: u16, reg_value: u16)
+    fn mmd_write(&mut self, device_address: arbitrary_int::u5, reg_address: u16, reg_value: u16)
     where
         Self: Sized,
     {

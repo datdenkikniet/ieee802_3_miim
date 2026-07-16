@@ -11,12 +11,12 @@ categories = ["embedded", "no-std", "hardware-support"]
 readme = "../README.md"
 
 [features]
-defmt = [ "dep:defmt", "dep:bilge-defmt" ]
+defmt = [ "dep:defmt" ]
 
 [dependencies]
-bilge = "0.3.0"
 defmt = { version = "1", optional = true }
-bilge-defmt = { version = "0.2.0", optional = true }
+bitbybit = "2.0.0"
+arbitrary-int = "2.1.1"
 
 [dev-dependencies]
 nix = "0.31.2"

@@ -1,12 +1,12 @@
 //! MDIO Manageable Device (MMD, Clause 45) access for MIIM PHYs.
 
-use bilge::{bitsize, prelude::*, FromBits};
+use arbitrary_int::u5;
 
 use crate::{Miim, RegisterAddress};
 
 /// The access mode for an MMD transaction.
-#[bitsize(2)]
-#[derive(FromBits, Debug)]
+#[bitbybit::bitenum(u2, exhaustive = true)]
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum AccessMode {
     /// Transfer an address to the MMDs address
@@ -25,14 +25,14 @@ pub enum AccessMode {
 }
 
 /// Register 13 & 14
-#[bitsize(16)]
-#[derive(Clone, Copy, DebugBits, FromBits)]
-#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
+#[bitbybit::bitfield(u16, forbid_overlaps, defmt_bitfields(feature = "defmt"))]
+#[derive(Debug, PartialEq)]
 pub struct MmdAccessControl {
     /// The device address.
+    #[bits(0..=4, rw)]
     pub device_address: u5,
-    reserved: u9,
     /// The access mode of the register.
+    #[bits(14..=15, rw)]
     pub mode: AccessMode,
 }
 
@@ -48,24 +48,28 @@ impl Mmd {
     /// Perform an MMD read of addres `reg_address` from device `device_address`
     ///  using the [`Miim::write_raw`] and [`Miim::read_raw`] functionality of `phy`.
     pub fn read<P: Miim>(phy: &mut P, device_address: u5, reg_address: u16) -> u16 {
-        let mut mmd_address = MmdAccessControl::new(device_address, AccessMode::Address);
-        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.value);
+        let mut mmd_address = MmdAccessControl::ZERO
+            .with_device_address(device_address)
+            .with_mode(AccessMode::Address);
+        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.raw_value());
         phy.write_raw(MmdAccessControl::DATA_ADDRESS_REG, reg_address);
 
         mmd_address.set_mode(AccessMode::Data);
-        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.value);
+        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.raw_value());
         phy.read_raw(MmdAccessControl::DATA_ADDRESS_REG)
     }
 
     /// Perform an MMD write at addres `reg_address` on device `device_address`
     ///  using the [`Miim::write_raw`] and [`Miim::read_raw`] functionality of `phy`.
     pub fn write<P: Miim>(phy: &mut P, device_address: u5, reg_address: u16, reg_data: u16) {
-        let mut mmd_address = MmdAccessControl::new(device_address, AccessMode::Address);
-        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.value);
+        let mut mmd_address = MmdAccessControl::ZERO
+            .with_device_address(device_address)
+            .with_mode(AccessMode::Address);
+        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.raw_value());
         phy.write_raw(MmdAccessControl::DATA_ADDRESS_REG, reg_address);
 
         mmd_address.set_mode(AccessMode::Data);
-        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.value);
+        phy.write_raw(MmdAccessControl::CONTROL_REG, mmd_address.raw_value());
         phy.write_raw(MmdAccessControl::DATA_ADDRESS_REG, reg_data)
     }
 }
