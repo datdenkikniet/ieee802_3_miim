@@ -319,26 +319,29 @@ pub trait Miim {
                 // the link partner supports gigabit makes sense. Additionally,
                 // we know that our local PHY supports it when gigabit is supported,
                 // so we can just reuse that knowledge.
-                if gigabit_able && autoneg_exp.link_partner_next_page_able() {
+                //
+                // According to Table 40-3, the LEADER-FOLLOWER status bits
+                // are only valid if 6.1 Page Received bit has been set.
+                //
+                // However, this bit latches low, which means we can only use it to
+                // read the correct status once. Instead, we will assume
+                // that the link partner being next page able is enough of an indication
+                // of gigabit-ability.
+                //
+                // LEADER-FOLLOWER advertisement bits in LF Control only make sense if we
+                // sent a next page.
+                if gigabit_able
+                    && autoneg_exp.next_page_able()
+                    && autoneg_exp.link_partner_next_page_able()
+                {
                     let lf_control: LeaderFollowerControl = self.read();
                     let lf_status: LeaderFollowerStatus = self.read();
 
-                    // LEADER-FOLLOWER advertisement bits only make sense if we
-                    // sent a next page.
-                    let local_next_page = autoneg_exp.next_page_able();
-                    let local_1000_fd = local_next_page && lf_control._1000base_t_fd();
-                    let local_1000_hd = local_next_page && lf_control._1000base_t_hd();
+                    let local_1000_fd = lf_control._1000base_t_fd();
+                    let local_1000_hd = lf_control._1000base_t_hd();
 
-                    // According to 802.3-2022, Table 40-3, the LEADER-FOLLOWER status bits
-                    // are only valid if 6.1 Page Received bit has been set.
-                    //
-                    // However, this bit latches low, which means we can only use it to
-                    // read the correct status once. Instead, we will assume
-                    // that the link partner being next page able is enough of an indication
-                    // of gigabit-ability.
-                    let lp_next_page = autoneg_exp.link_partner_next_page_able();
-                    let lp_1000_fd = lp_next_page && lf_status._1000base_t_fd();
-                    let lp_1000_hd = lp_next_page && lf_status._1000base_t_hd();
+                    let lp_1000_fd = lf_status._1000base_t_fd();
+                    let lp_1000_hd = lf_status._1000base_t_hd();
 
                     if local_1000_fd && lp_1000_fd {
                         return Ok(LinkState {
