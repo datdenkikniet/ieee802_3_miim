@@ -121,7 +121,7 @@ pub enum Selector {
 ///
 /// Defined in Annex 28B.2 and 28D.
 #[bitsize(7)]
-#[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
+#[derive(FromBits, DebugBits, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
 pub struct TechnologyAbility {
     /// Supports 10BASE-T, Half-Duplex.
