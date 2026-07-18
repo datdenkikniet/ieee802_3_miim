@@ -45,7 +45,7 @@ impl RegisterAddress {
     }
 }
 
-/// The state of a link.
+/// The state of an (R)(G)MII link.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LinkState {
@@ -55,7 +55,7 @@ pub struct LinkState {
     pub duplex: Duplex,
 }
 
-/// All links speed that may be supported by a normal (R)(G)MII PHY.
+/// All link speeds that may be supported by a normal (R)(G)MII PHY.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LinkSpeed {
