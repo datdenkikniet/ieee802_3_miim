@@ -14,11 +14,11 @@ pub mod registers;
 use registers::*;
 
 use crate::registers::{
-    auto_negotiation::{
-        AutonegotiationAdvertisement, AutonegotiationExpansion, AutonegotiationLinkPartnerAbility,
-    },
-    leader_follower::{LeaderFollowerControl, LeaderFollowerStatus},
+    auto_negotiation::AutonegotiationAdvertisement, leader_follower::LeaderFollowerControl,
 };
+
+mod link_state;
+pub use link_state::{GetLinkStateProcess, LinkStateError};
 
 /// A MIIM register address.
 ///
@@ -45,31 +45,8 @@ impl RegisterAddress {
     }
 }
 
-/// Errors that can occur when attempting to determine
-/// the state of a link.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum LinkStateError {
-    /// No link has been established yet.
-    NoLink,
-    /// The PHY is configured for autonegotiation, but it does
-    /// not support autonegotiation.
-    NotAutonegotiationAble,
-    /// Autonegotiation is enabled, but has not completed yet.
-    AutonegotiationNotCompleted,
-    /// Autonegotiation is enabled, but the PHY does not support extended
-    /// capabilities. This means that it lacks the registers required to
-    /// read out the autonegotiation status, so the status cannot be read out.
-    ExtendedCapabilities,
-    /// Autonegotiation is enabled, but he link partner does not support auto negotiation.
-    LinkPartnerNotAutonegotiationAble,
-    /// None of the technologies supported by this PHY
-    /// are supported by the autonegotitation link partner, and vice-versa.
-    NoMatchingTechnologies,
-}
-
 /// The state of a link.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct LinkState {
     /// The speed of the link.
@@ -78,16 +55,16 @@ pub struct LinkState {
     pub duplex: Duplex,
 }
 
-/// All basic link speeds possibly supported by the PHY.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// All links speed that may be supported by a normal (R)(G)MII PHY.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum LinkSpeed {
-    /// 1000 Mbps
-    Mbps1000,
-    /// 100 Mbps
-    Mbps100,
     /// 10 Mbps
     Mbps10,
+    /// 100 Mbps
+    Mbps100,
+    /// 1000 Mbps
+    Mbps1000,
 }
 
 /// The PHY IDENT of this PHY
@@ -256,135 +233,20 @@ pub trait Miim {
     }
 
     /// Get the current link state of this PHY.
-    ///
-    /// All relevant bits (ignoring 100BASE-T2 and 100BASE-T4) are in IEEE 802.3-2022:
-    /// * 22.2.4.1 Control Register (Register 0)
-    /// * 22.2.4.2 Status register (Register 1)
-    /// * 22.2.4.3.7 MASTER-SLAVE control register (Register 9)
-    ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
-    /// * 22.2.4.3.8 MASTER-SLAVE status register (Register 10)
-    ///   which links to 40.5.1.1 1000BASE-T use of registers during Auto-Negotiation
-    /// * 28.2.4.1.3 Auto-Negotiation advertisement register (Register 4)
-    /// * 28.2.4.1.4 Auto-Negotiation Link Partner ability register (Register 5)
-    /// * 28.2.4.1.5 Auto-Negotiation expansion register (Register 6) (RO)
     fn get_link_state(&mut self) -> Result<LinkState, LinkStateError> {
-        let basic_control: BasicControl = self.read();
-        let basic_status: BasicStatus = self.read();
+        use core::ops::ControlFlow;
 
-        if !basic_status.link_status() {
-            return Err(LinkStateError::NoLink);
-        }
+        let process = match GetLinkStateProcess::start(self.read(), self.read()) {
+            ControlFlow::Continue(c) => c,
+            ControlFlow::Break(res) => return res,
+        };
 
-        // Having extended status is equivalent to being 1000 Mbit capable
-        let has_extended_status = basic_status.extended_status();
-        let gigabit_able = has_extended_status;
+        let process = match process.next(self.read(), self.read(), self.read()) {
+            ControlFlow::Continue(c) => c,
+            ControlFlow::Break(res) => return res,
+        };
 
-        // We don't need to check if the PHY is autonegotiation able:
-        // BasicControl must return 0 for autonegotiation enabled on
-        // PHYs that don't support it.
-        let link_config = basic_control.get_link_config();
-        let autoneg_completed = basic_status.autonegotiation_complete();
-
-        match (link_config, autoneg_completed) {
-            (BasicControlLinkConfig::Manual { duplex, speed }, _) => Ok(LinkState {
-                speed,
-                duplex: match duplex {
-                    DuplexConfig::Half => Duplex::Half,
-                    DuplexConfig::Full { .. } => Duplex::Full,
-                },
-            }),
-            (BasicControlLinkConfig::Autonegotiate { .. }, false) => {
-                Err(LinkStateError::AutonegotiationNotCompleted)
-            }
-            (BasicControlLinkConfig::Autonegotiate { .. }, true) => {
-                if !basic_status.extended_capabilities() {
-                    return Err(LinkStateError::ExtendedCapabilities);
-                }
-
-                let autoneg_exp: AutonegotiationExpansion = self.read();
-                let advertisement: AutonegotiationAdvertisement = self.read();
-
-                if !autoneg_exp.link_partner_autonegotiation_able() {
-                    return Err(LinkStateError::LinkPartnerNotAutonegotiationAble);
-                }
-
-                // Priority resolution as defined in IEEE 802.3-2022, Section 28B.3
-                // 100BASE-T2 and 100BASE-T4 are ignored
-                //
-                // IEEE 802.3-2022, Section 40.5.1.2 mandates that 1000BASE-T PHYs
-                // must send next pages, so using it as indication for whether
-                // the link partner supports gigabit makes sense. Additionally,
-                // we know that our local PHY supports it when gigabit is supported,
-                // so we can just reuse that knowledge.
-                //
-                // According to Table 40-3, the LEADER-FOLLOWER status bits
-                // are only valid if 6.1 Page Received bit has been set.
-                //
-                // However, this bit latches low, which means we can only use it to
-                // read the correct status once. Instead, we will assume
-                // that the link partner being next page able is enough of an indication
-                // of gigabit-ability.
-                //
-                // LEADER-FOLLOWER advertisement bits in LF Control only make sense if we
-                // sent a next page.
-                if gigabit_able
-                    && autoneg_exp.next_page_able()
-                    && autoneg_exp.link_partner_next_page_able()
-                {
-                    let lf_control: LeaderFollowerControl = self.read();
-                    let lf_status: LeaderFollowerStatus = self.read();
-
-                    let local_1000_fd = lf_control._1000base_t_fd();
-                    let local_1000_hd = lf_control._1000base_t_hd();
-
-                    let lp_1000_fd = lf_status._1000base_t_fd();
-                    let lp_1000_hd = lf_status._1000base_t_hd();
-
-                    if local_1000_fd && lp_1000_fd {
-                        return Ok(LinkState {
-                            speed: LinkSpeed::Mbps1000,
-                            duplex: Duplex::Full,
-                        });
-                    } else if local_1000_hd && lp_1000_hd {
-                        return Ok(LinkState {
-                            speed: LinkSpeed::Mbps1000,
-                            duplex: Duplex::Half,
-                        });
-                    }
-                }
-
-                let local_ta = advertisement.technology_ability();
-
-                let local_100_fd = local_ta._100base_tx_fd();
-                let local_100_hd = local_ta._100base_tx_hd();
-                let local_10_fd = local_ta._10base_t_fd();
-                let local_10_hd = local_ta._10base_t_fd();
-
-                let link_partner_ability: AutonegotiationLinkPartnerAbility = self.read();
-                let lp_ta = link_partner_ability.technology_ability();
-
-                let lp_100_fd = lp_ta._100base_tx_fd();
-                let lp_100_hd = lp_ta._100base_tx_hd();
-                let lp_10_fd = lp_ta._10base_t_fd();
-                let lp_10_hd = lp_ta._10base_t_hd();
-
-                // Priority resolution as defined in IEEE 802.3-2022, Section 28B.3
-                // 100BASE-T2 and 100BASE-T4 are ignored
-                let (speed, duplex) = if local_100_fd && lp_100_fd {
-                    (LinkSpeed::Mbps100, Duplex::Full)
-                } else if local_100_hd && lp_100_hd {
-                    (LinkSpeed::Mbps100, Duplex::Half)
-                } else if local_10_fd && lp_10_fd {
-                    (LinkSpeed::Mbps10, Duplex::Full)
-                } else if local_10_hd && lp_10_hd {
-                    (LinkSpeed::Mbps10, Duplex::Half)
-                } else {
-                    return Err(LinkStateError::NoMatchingTechnologies);
-                };
-
-                Ok(LinkState { speed, duplex })
-            }
-        }
+        process.next(self.read(), self.read())
     }
 
     /// Set the autonegotiation advertisement and restart the autonegotiation
@@ -437,126 +299,44 @@ pub trait Miim {
 }
 
 #[cfg(test)]
-mod test {
-    use crate::{LinkState, Miim, RegisterAddress};
-
-    struct MockPhy {
-        registers: [u16; 16],
-    }
-
-    impl Miim for MockPhy {
-        fn read_raw(&mut self, address: RegisterAddress) -> u16 {
-            self.registers[address.get() as usize]
-        }
-
-        fn write_raw(&mut self, address: RegisterAddress, value: u16) {
-            self.registers[address.get() as usize] = value;
-        }
-    }
-
-    const GIGABIT_GIGABIT_PARTNER: MockPhy = MockPhy {
-        #[rustfmt::skip]
-        registers: [
-            0x1000, 0x79ad, 0x001c, 0xc800, 0x0de1, 0xc1e1, 0x006d, 0x2001,
-            0x6001, 0x0200, 0x3800, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
-        ],
-    };
-
-    const GIGABIT_100M_PARTNER: MockPhy = MockPhy {
-        #[rustfmt::skip]
-        registers: [
-            0x1040, 0x79ad, 0x001c, 0xc800, 0x0de1, 0x51e1, 0x0065, 0x2001,
-            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
-        ],
-    };
-
-    const GIGABIT_10M_PARTNER: MockPhy = MockPhy {
-        #[rustfmt::skip]
-        registers: [
-        0x1000, 0x79ad, 0x001c, 0xc800, 0x01e1, 0x4061, 0x0067, 0x2801,
-        0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
-        ],
-    };
-
-    const LINK_NOT_UP: MockPhy = MockPhy {
-        #[rustfmt::skip]
-        registers: [
-            0x1000, 0x7989, 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
-            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
-        ],
-    };
-
-    const AUTONEG_INCOMPLETE: MockPhy = MockPhy {
-        #[rustfmt::skip]
-        registers: [
-            // Same as LINK_NOT_UP, but with link status bit set
-            0x1000, 0x7989 | (1 << 2), 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
-            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
-        ],
-    };
+mod link_ordering {
+    use crate::{registers::Duplex, LinkSpeed, LinkState};
 
     #[test]
-    fn link_not_up() {
-        let mut phy = LINK_NOT_UP;
-
-        let state = phy.get_link_state();
-
-        assert_eq!(state, Err(crate::LinkStateError::NoLink))
+    fn gig_greatest() {
+        assert!(LinkSpeed::Mbps1000 > LinkSpeed::Mbps100);
+        assert!(LinkSpeed::Mbps1000 > LinkSpeed::Mbps10);
     }
 
     #[test]
-    fn autoneg_incomplete() {
-        let mut phy = AUTONEG_INCOMPLETE;
-
-        let state = phy.get_link_state();
-
-        assert_eq!(
-            state,
-            Err(crate::LinkStateError::AutonegotiationNotCompleted)
-        )
+    fn _100_bigger_than_10() {
+        assert!(LinkSpeed::Mbps100 > LinkSpeed::Mbps10);
     }
 
     #[test]
-    fn link_state_10fd() {
-        let mut phy = GIGABIT_10M_PARTNER;
+    fn duplex_ordering() {
+        assert!(Duplex::Full > Duplex::Half);
+    }
 
-        let state = phy.get_link_state().unwrap();
-
-        assert_eq!(
-            state,
+    #[test]
+    fn link_state_ordering() {
+        assert!(
             LinkState {
-                speed: crate::LinkSpeed::Mbps10,
-                duplex: crate::registers::Duplex::Full
+                speed: LinkSpeed::Mbps1000,
+                duplex: Duplex::Full
+            } > LinkState {
+                speed: LinkSpeed::Mbps1000,
+                duplex: Duplex::Half
             }
-        )
-    }
+        );
 
-    #[test]
-    fn link_state_100fd() {
-        let mut phy = GIGABIT_100M_PARTNER;
-
-        let state = phy.get_link_state().unwrap();
-
-        assert_eq!(
-            state,
+        assert!(
             LinkState {
-                speed: crate::LinkSpeed::Mbps100,
-                duplex: crate::registers::Duplex::Full
-            }
-        )
-    }
-
-    #[test]
-    fn link_state_1gfd() {
-        let mut phy = GIGABIT_GIGABIT_PARTNER;
-
-        let state = phy.get_link_state().unwrap();
-
-        assert_eq!(
-            state,
-            LinkState {
-                speed: crate::LinkSpeed::Mbps1000,
-                duplex: crate::registers::Duplex::Full
+                speed: LinkSpeed::Mbps1000,
+                duplex: Duplex::Full
+            } > LinkState {
+                speed: LinkSpeed::Mbps100,
+                duplex: Duplex::Full
             }
         )
     }

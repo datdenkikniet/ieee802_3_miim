@@ -95,13 +95,13 @@ impl Register for ExtendedStatus {
 
 /// A duplex mode.
 #[bitsize(1)]
-#[derive(Clone, Copy, Debug, FromBits, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, FromBits, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Duplex {
-    /// Half duplex.
-    Half = 0,
     /// Full duplex.
     Full = 1,
+    /// Half duplex.
+    Half = 0,
 }
 
 /// Valid duplex mode configurations for [`BasicControl`].
