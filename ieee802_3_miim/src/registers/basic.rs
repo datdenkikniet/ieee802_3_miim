@@ -97,7 +97,7 @@ impl Register for ExtendedStatus {
 #[bitsize(1)]
 #[derive(Clone, Copy, Debug, FromBits, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum DuplexMode {
+pub enum Duplex {
     /// Half duplex.
     Half = 0,
     /// Full duplex.
@@ -107,7 +107,7 @@ pub enum DuplexMode {
 /// Valid duplex mode configurations for [`BasicControl`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum Duplex {
+pub enum DuplexConfig {
     /// Half duplex.
     Half,
     /// Full duplex.
@@ -131,7 +131,7 @@ pub enum BasicControlLinkConfig {
     /// Manual configuration of the link state.
     Manual {
         /// The duplex to use.
-        duplex: Duplex,
+        duplex: DuplexConfig,
         /// The speed to use.
         speed: LinkSpeed,
     },
@@ -156,7 +156,7 @@ pub struct BasicControl {
     speed_sel_msb: bool,
     /// Enable the collision test signal.
     pub collision_test: bool,
-    duplex_mode: DuplexMode,
+    duplex_mode: Duplex,
     restart_autonegotiation: bool,
     /// Electrically isolate the PHY from its (Gigabit) Media Independent
     /// Interface.
@@ -187,8 +187,8 @@ impl BasicControl {
             }
         } else {
             let duplex = match self.duplex_mode() {
-                DuplexMode::Half => Duplex::Half,
-                DuplexMode::Full => Duplex::Full {
+                Duplex::Half => DuplexConfig::Half,
+                Duplex::Full => DuplexConfig::Full {
                     unidirectional: self.unidirectional_enable(),
                 },
             };
@@ -214,9 +214,9 @@ impl BasicControl {
             BasicControlLinkConfig::Manual { duplex, speed } => {
                 self.set_autonegotiation_enable(false);
                 match duplex {
-                    Duplex::Half => self.set_duplex_mode(DuplexMode::Half),
-                    Duplex::Full { unidirectional } => {
-                        self.set_duplex_mode(DuplexMode::Full);
+                    DuplexConfig::Half => self.set_duplex_mode(Duplex::Half),
+                    DuplexConfig::Full { unidirectional } => {
+                        self.set_duplex_mode(Duplex::Full);
                         self.set_unidirectional_enable(unidirectional);
                     }
                 }
@@ -241,23 +241,23 @@ impl Register for BasicControl {
 #[cfg(test)]
 mod test {
     use crate::{
-        registers::{BasicControl, DuplexMode},
+        registers::{BasicControl, Duplex},
         LinkSpeed,
     };
 
-    use super::{BasicControlLinkConfig, Duplex};
+    use super::{BasicControlLinkConfig, DuplexConfig};
 
     #[test]
     fn set_manual_mode_disables_autonegotiation() {
         let mut status = BasicControl::from(0);
         status.set_link_config(BasicControlLinkConfig::Manual {
-            duplex: Duplex::Half,
+            duplex: DuplexConfig::Half,
             speed: LinkSpeed::Mbps100,
         });
 
         assert!(!status.autonegotiation_enable());
         assert!(status.speed_sel_lsb());
         assert!(!status.speed_sel_msb());
-        assert_eq!(status.duplex_mode(), DuplexMode::Half);
+        assert_eq!(status.duplex_mode(), Duplex::Half);
     }
 }

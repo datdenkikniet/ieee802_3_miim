@@ -40,7 +40,7 @@ mod basic;
 pub mod leader_follower;
 
 pub use basic::{
-    BasicControl, BasicControlLinkConfig, BasicStatus, Duplex, DuplexMode, ExtendedStatus,
+    BasicControl, BasicControlLinkConfig, BasicStatus, Duplex, DuplexConfig, ExtendedStatus,
 };
 
 use crate::RegisterAddress;

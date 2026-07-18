@@ -75,7 +75,7 @@ pub struct LinkState {
     /// The speed of the link.
     pub speed: LinkSpeed,
     /// The duplex mode of the link.
-    pub duplex: DuplexMode,
+    pub duplex: Duplex,
 }
 
 /// All basic link speeds possibly supported by the PHY.
@@ -289,8 +289,8 @@ pub trait Miim {
             (BasicControlLinkConfig::Manual { duplex, speed }, _) => Ok(LinkState {
                 speed,
                 duplex: match duplex {
-                    Duplex::Half => DuplexMode::Half,
-                    Duplex::Full { .. } => DuplexMode::Full,
+                    DuplexConfig::Half => Duplex::Half,
+                    DuplexConfig::Full { .. } => Duplex::Full,
                 },
             }),
             (BasicControlLinkConfig::Autonegotiate { .. }, false) => {
@@ -343,12 +343,12 @@ pub trait Miim {
                     if local_1000_fd && lp_1000_fd {
                         return Ok(LinkState {
                             speed: LinkSpeed::Mbps1000,
-                            duplex: DuplexMode::Full,
+                            duplex: Duplex::Full,
                         });
                     } else if local_1000_hd && lp_1000_hd {
                         return Ok(LinkState {
                             speed: LinkSpeed::Mbps1000,
-                            duplex: DuplexMode::Half,
+                            duplex: Duplex::Half,
                         });
                     }
                 }
@@ -371,13 +371,13 @@ pub trait Miim {
                 // Priority resolution as defined in IEEE 802.3-2022, Section 28B.3
                 // 100BASE-T2 and 100BASE-T4 are ignored
                 let (speed, duplex) = if local_100_fd && lp_100_fd {
-                    (LinkSpeed::Mbps100, DuplexMode::Full)
+                    (LinkSpeed::Mbps100, Duplex::Full)
                 } else if local_100_hd && lp_100_hd {
-                    (LinkSpeed::Mbps100, DuplexMode::Half)
+                    (LinkSpeed::Mbps100, Duplex::Half)
                 } else if local_10_fd && lp_10_fd {
-                    (LinkSpeed::Mbps10, DuplexMode::Full)
+                    (LinkSpeed::Mbps10, Duplex::Full)
                 } else if local_10_hd && lp_10_hd {
-                    (LinkSpeed::Mbps10, DuplexMode::Half)
+                    (LinkSpeed::Mbps10, Duplex::Half)
                 } else {
                     return Err(LinkStateError::NoMatchingTechnologies);
                 };
@@ -526,7 +526,7 @@ mod test {
             state,
             LinkState {
                 speed: crate::LinkSpeed::Mbps10,
-                duplex: crate::registers::DuplexMode::Full
+                duplex: crate::registers::Duplex::Full
             }
         )
     }
@@ -541,7 +541,7 @@ mod test {
             state,
             LinkState {
                 speed: crate::LinkSpeed::Mbps100,
-                duplex: crate::registers::DuplexMode::Full
+                duplex: crate::registers::Duplex::Full
             }
         )
     }
@@ -556,7 +556,7 @@ mod test {
             state,
             LinkState {
                 speed: crate::LinkSpeed::Mbps1000,
-                duplex: crate::registers::DuplexMode::Full
+                duplex: crate::registers::Duplex::Full
             }
         )
     }
