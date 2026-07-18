@@ -70,7 +70,7 @@ pub enum LinkSpeed {
     Mbps1000,
 }
 
-/// The PHY IDENT of this PHY
+/// The PHY IDENT of a [`Miim`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PhyIdent(u16, u16);

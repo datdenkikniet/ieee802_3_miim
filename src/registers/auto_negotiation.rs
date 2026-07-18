@@ -77,7 +77,7 @@ pub struct AutonegotiationExpansion {
     pub link_partner_autonegotiation_able: bool,
     /// Whether a new page was received from the link partner.
     ///
-    /// This field is reset to 0 when on a read of the register.
+    /// This field is reset to 0 when the register is read.
     pub page_received: bool,
     /// Whether the local device is next-page able.
     pub next_page_able: bool,
