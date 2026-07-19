@@ -74,33 +74,44 @@ pub struct PhyIdent(u16, u16);
 
 impl PhyIdent {
     /// Create a new PhyIdent
-    pub fn new(phy_ident_1: u16, phy_ident_2: u16) -> Self {
+    ///
+    /// `phy_ident_1` should be the contents of the ID1 register
+    /// of the PHY, and `phy_ident_2` should be the contents of the
+    /// ID2 register of the PHY.
+    pub const fn new(phy_ident_1: u16, phy_ident_2: u16) -> Self {
         Self(phy_ident_1, phy_ident_2)
     }
 
     /// The raw values of this PhyIdent
-    pub fn raw(&self) -> (u16, u16) {
+    pub const fn raw(&self) -> (u16, u16) {
         (self.0, self.1)
     }
 
     /// The raw value of this PhyIdent, as u32
-    pub fn raw_u32(&self) -> u32 {
+    pub const fn raw_u32(&self) -> u32 {
         (self.0 as u32) << 16 | (self.1 as u32)
     }
 
     /// The OUI of this PhyIdent
-    pub fn oui(&self) -> u32 {
+    pub const fn oui(&self) -> u32 {
         (self.0 as u32) << 6 & (self.1 as u32) >> 10
     }
 
     /// The model number of this PhyIdent
-    pub fn model_number(&self) -> u8 {
+    pub const fn model_number(&self) -> u8 {
         (self.1 >> 4) as u8 & 0x3F
     }
 
     /// The revision number of this PhyIdent
-    pub fn revision(&self) -> u8 {
+    pub const fn revision(&self) -> u8 {
         (self.1) as u8 & 0x0F
+    }
+
+    /// Determine whether `self` and `other` are the same model from
+    /// the same manufacturer, i.e. that their `oui`s and
+    /// `model_number`s are identical.
+    pub const fn is_same_mode(&self, other: &Self) -> bool {
+        self.oui() == other.oui() && self.model_number() == other.model_number()
     }
 }
 
