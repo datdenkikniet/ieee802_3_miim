@@ -11,7 +11,7 @@ include autonegotiation configuration, custom on-chip register access through MM
 
 ## What is MDIO?
 
-MDIO (Management Data Input/Output) is one of the standard-mandated method of accessing MIIM functions. Most PHYs support
+MDIO (Management Data Input/Output) is one of the standard-mandated methods of accessing MIIM functions. Most PHYs support
 this protocol for accessing their MIIM interface, so the crate provides a default PHY implementation (`MdioPhy`)
 that will let you access your PHYs over an MDIO bus. However: some PHYs (such as the Microchip KSZ8863) also provide access to
 MIIM registers over other interfaces. Therefore, the MIIM functionality provided by this crate is not tightly coupled to access using MDIO.
