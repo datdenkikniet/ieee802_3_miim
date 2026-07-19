@@ -141,17 +141,17 @@ impl GetLinkStateProcess {
         let autoneg_completed = status.autonegotiation_complete();
 
         let result = match (link_config, autoneg_completed) {
-            (BasicControlLinkConfig::Manual { duplex, speed }, _) => Ok(LinkState {
+            (LinkConfig::Manual { duplex, speed }, _) => Ok(LinkState {
                 speed,
                 duplex: match duplex {
                     DuplexConfig::Half => Duplex::Half,
                     DuplexConfig::Full { .. } => Duplex::Full,
                 },
             }),
-            (BasicControlLinkConfig::Autonegotiate { .. }, false) => {
+            (LinkConfig::Autonegotiate { .. }, false) => {
                 Err(LinkStateError::AutonegotiationNotCompleted)
             }
-            (BasicControlLinkConfig::Autonegotiate { .. }, true) => {
+            (LinkConfig::Autonegotiate { .. }, true) => {
                 if !status.extended_capabilities() {
                     return Break(Err(LinkStateError::ExtendedCapabilities));
                 }
@@ -244,18 +244,18 @@ mod test {
         registers::{
             auto_negotiation::AutonegotiationExpansion,
             leader_follower::{LeaderFollowerControl, LeaderFollowerStatus},
-            BasicControl, BasicControlLinkConfig, BasicStatus, Duplex, DuplexConfig,
+            BasicControl, BasicStatus, Duplex, DuplexConfig, LinkConfig,
         },
         GetLinkStateProcess, LinkSpeed, LinkState, LinkStateError,
     };
 
-    fn control_to_determined_pairs() -> impl Iterator<Item = (BasicControlLinkConfig, LinkState)> {
+    fn control_to_determined_pairs() -> impl Iterator<Item = (LinkConfig, LinkState)> {
         [LinkSpeed::Mbps10, LinkSpeed::Mbps100, LinkSpeed::Mbps1000]
             .into_iter()
             .flat_map(|speed| {
                 [
                     (
-                        BasicControlLinkConfig::Manual {
+                        LinkConfig::Manual {
                             duplex: DuplexConfig::Half,
                             speed,
                         },
@@ -265,7 +265,7 @@ mod test {
                         },
                     ),
                     (
-                        BasicControlLinkConfig::Manual {
+                        LinkConfig::Manual {
                             duplex: DuplexConfig::Full {
                                 unidirectional: true,
                             },
@@ -277,7 +277,7 @@ mod test {
                         },
                     ),
                     (
-                        BasicControlLinkConfig::Manual {
+                        LinkConfig::Manual {
                             duplex: DuplexConfig::Full {
                                 unidirectional: false,
                             },
@@ -327,7 +327,7 @@ mod test {
         status.set_extended_capabilities(true);
 
         let mut control = BasicControl::from(0);
-        control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+        control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
         let start = GetLinkStateProcess::start(status, control);
 
@@ -344,7 +344,7 @@ mod test {
         status.set_autonegotiation_complete(true);
 
         let mut control = BasicControl::from(0);
-        control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+        control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
         let start = GetLinkStateProcess::start(status, control);
 
@@ -362,7 +362,7 @@ mod test {
         status.set_extended_capabilities(true);
 
         let mut control = BasicControl::from(0);
-        control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+        control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
         let start = GetLinkStateProcess::start(status, control);
 
@@ -377,7 +377,7 @@ mod test {
         status.set_extended_capabilities(true);
 
         let mut control = BasicControl::from(0);
-        control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+        control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
         let start = GetLinkStateProcess::start(status, control);
         let autoneg = start.continue_value().unwrap();
@@ -402,7 +402,7 @@ mod test {
             status.set_extended_status(ext_status);
 
             let mut control = BasicControl::from(0);
-            control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+            control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
             let start = GetLinkStateProcess::start(status, control);
             let autoneg = start.continue_ok().unwrap();
@@ -455,7 +455,7 @@ mod test {
             status.set_extended_status(true);
 
             let mut control = BasicControl::from(0);
-            control.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: false });
+            control.set_link_config(LinkConfig::Autonegotiate { restart: false });
 
             let start = GetLinkStateProcess::start(status, control);
             let autoneg = start.continue_value().unwrap();

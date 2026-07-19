@@ -122,7 +122,7 @@ pub enum DuplexConfig {
 /// Link mode configurations available in for [`BasicControl`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum BasicControlLinkConfig {
+pub enum LinkConfig {
     /// Use autonegotiation to configure the link state.
     Autonegotiate {
         /// Restart autonegotiation.
@@ -137,7 +137,7 @@ pub enum BasicControlLinkConfig {
     },
 }
 
-impl BasicControlLinkConfig {
+impl LinkConfig {
     /// Check if this link configuration uses autonegotiation.
     pub fn is_autonegotiation(&self) -> bool {
         matches!(self, Self::Autonegotiate { restart: _ })
@@ -180,9 +180,9 @@ pub struct BasicControl {
 
 impl BasicControl {
     /// Get the current link configuration.
-    pub fn get_link_config(&self) -> BasicControlLinkConfig {
+    pub fn get_link_config(&self) -> LinkConfig {
         if self.autonegotiation_enable() {
-            BasicControlLinkConfig::Autonegotiate {
+            LinkConfig::Autonegotiate {
                 restart: self.restart_autonegotiation(),
             }
         } else {
@@ -200,18 +200,18 @@ impl BasicControl {
                 (true, true) => panic!("PHY reported invalid speed 0b11"),
             };
 
-            BasicControlLinkConfig::Manual { duplex, speed }
+            LinkConfig::Manual { duplex, speed }
         }
     }
 
     /// Set the link configuration to `config`.
-    pub fn set_link_config(&mut self, config: BasicControlLinkConfig) {
+    pub fn set_link_config(&mut self, config: LinkConfig) {
         match config {
-            BasicControlLinkConfig::Autonegotiate { restart } => {
+            LinkConfig::Autonegotiate { restart } => {
                 self.set_autonegotiation_enable(true);
                 self.set_restart_autonegotiation(restart);
             }
-            BasicControlLinkConfig::Manual { duplex, speed } => {
+            LinkConfig::Manual { duplex, speed } => {
                 self.set_autonegotiation_enable(false);
                 match duplex {
                     DuplexConfig::Half => self.set_duplex_mode(Duplex::Half),
@@ -245,12 +245,12 @@ mod test {
         LinkSpeed,
     };
 
-    use super::{BasicControlLinkConfig, DuplexConfig};
+    use super::{DuplexConfig, LinkConfig};
 
     #[test]
     fn set_manual_mode_disables_autonegotiation() {
         let mut status = BasicControl::from(0);
-        status.set_link_config(BasicControlLinkConfig::Manual {
+        status.set_link_config(LinkConfig::Manual {
             duplex: DuplexConfig::Half,
             speed: LinkSpeed::Mbps100,
         });

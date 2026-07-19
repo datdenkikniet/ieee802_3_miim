@@ -228,7 +228,7 @@ pub trait Miim {
         });
 
         self.modify(|bcr: &mut BasicControl| {
-            bcr.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: true });
+            bcr.set_link_config(LinkConfig::Autonegotiate { restart: true });
         })
     }
 
@@ -263,7 +263,7 @@ pub trait Miim {
         self.write(ad);
 
         self.modify(|bcr: &mut BasicControl| {
-            bcr.set_link_config(BasicControlLinkConfig::Autonegotiate { restart: true });
+            bcr.set_link_config(LinkConfig::Autonegotiate { restart: true });
         })
     }
 

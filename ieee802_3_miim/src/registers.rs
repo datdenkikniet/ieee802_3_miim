@@ -39,9 +39,7 @@ mod basic;
 // 9 and 10
 pub mod leader_follower;
 
-pub use basic::{
-    BasicControl, BasicControlLinkConfig, BasicStatus, Duplex, DuplexConfig, ExtendedStatus,
-};
+pub use basic::{BasicControl, BasicStatus, Duplex, DuplexConfig, ExtendedStatus, LinkConfig};
 
 use crate::RegisterAddress;
 
