@@ -14,6 +14,6 @@ readme = "README.md"
 ieee802_3_miim = { path = "../ieee802_3_miim", version = "0.9.1" }
 
 [features]
-lan8720a = [ "ieee802_3_miim/mmd" ]
-lan8742a = [ "ieee802_3_miim/mmd" ]
+lan8720a = [  ]
+lan8742a = [  ]
 ksz8081r = [  ]
