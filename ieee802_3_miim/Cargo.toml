@@ -12,7 +12,7 @@ readme = "../README.md"
 
 [features]
 default = [ "mmd" ]
-defmt = [ "dep:defmt", "bilge-defmt" ]
+defmt = [ "dep:defmt", "dep:bilge-defmt" ]
 
 mmd = [ ]
 
