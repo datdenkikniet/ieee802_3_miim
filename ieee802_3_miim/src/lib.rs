@@ -120,27 +120,33 @@ pub trait Miim {
     ///
     /// This is a read as specified by Clause 22 of
     /// the standard.
+    #[doc(alias = "clause22_read")]
+    #[doc(alias = "clause 22")]
     fn read_raw(&mut self, address: RegisterAddress) -> u16;
 
     /// Write `value` to the MIIM register at `address`.
     ///
     /// This is a write as specified by Clause 22 of
     /// the standard.
+    #[doc(alias = "clause22_write")]
+    #[doc(alias = "clause 22")]
     fn write_raw(&mut self, address: RegisterAddress, value: u16);
 
-    /// Read the register `Register` on this PHY.
+    /// Read `Register` on this PHY.
+    #[doc(alias = "clause 22")]
     fn read<R: Register>(&mut self) -> R {
         let raw = self.read_raw(R::ADDRESS);
         raw.into()
     }
 
-    /// Write the register `Register`.
+    /// Write `Register` on this PHY.
+    #[doc(alias = "clause 22")]
     fn write<R: Register>(&mut self, value: R) {
         let raw = value.into();
         self.write_raw(R::ADDRESS, raw);
     }
 
-    /// Modify the register `Register` on this PHY.
+    /// Modify `Register` on this PHY.
     fn modify<R: Register, F>(&mut self, f: F)
     where
         F: FnOnce(&mut R),
@@ -241,6 +247,10 @@ pub trait Miim {
     }
 
     /// Get the current link state of this PHY.
+    ///
+    /// If you wish to perform the process of determining the link
+    /// state of a spec-compilant PHY by other means, check out
+    /// [`GetLinkStateProcess::start`] and [`GetLinkStateProcess::oneshot`].
     fn get_link_state(&mut self) -> Result<LinkState, LinkStateError> {
         use core::ops::ControlFlow;
 
