@@ -318,7 +318,7 @@ pub trait Miim {
 
 #[cfg(test)]
 mod link_ordering {
-    use crate::{registers::Duplex, LinkSpeed, LinkState};
+    use crate::{registers::Duplex, LinkSpeed, LinkState, Miim, RegisterAddress};
 
     #[test]
     fn gig_greatest() {
@@ -355,6 +355,127 @@ mod link_ordering {
             } > LinkState {
                 speed: LinkSpeed::Mbps100,
                 duplex: Duplex::Full
+            }
+        )
+    }
+
+    struct MockPhy {
+        registers: [u16; 16],
+    }
+
+    impl Miim for MockPhy {
+        fn read_raw(&mut self, address: RegisterAddress) -> u16 {
+            self.registers[address.get() as usize]
+        }
+
+        fn write_raw(&mut self, address: RegisterAddress, value: u16) {
+            self.registers[address.get() as usize] = value;
+        }
+    }
+
+    const GIGABIT_GIGABIT_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1000, 0x79ad, 0x001c, 0xc800, 0x0de1, 0xc1e1, 0x006d, 0x2001,
+            0x6001, 0x0200, 0x3800, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const GIGABIT_100M_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1040, 0x79ad, 0x001c, 0xc800, 0x0de1, 0x51e1, 0x0065, 0x2001,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const GIGABIT_10M_PARTNER: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+        0x1000, 0x79ad, 0x001c, 0xc800, 0x01e1, 0x4061, 0x0067, 0x2801,
+        0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x2000,
+        ],
+    };
+
+    const LINK_NOT_UP: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            0x1000, 0x7989, 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
+        ],
+    };
+
+    const AUTONEG_INCOMPLETE: MockPhy = MockPhy {
+        #[rustfmt::skip]
+        registers: [
+            // Same as LINK_NOT_UP, but with link status bit set
+            0x1000, 0x7989 | (1 << 2), 0x001c, 0xc800, 0x0de1, 0x0000, 0x0064, 2801,
+            0x0000, 0x0200, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 2000,
+        ],
+    };
+
+    #[test]
+    fn link_not_up() {
+        let mut phy = LINK_NOT_UP;
+
+        let state = phy.get_link_state();
+
+        assert_eq!(state, Err(crate::LinkStateError::NoLink))
+    }
+
+    #[test]
+    fn autoneg_incomplete() {
+        let mut phy = AUTONEG_INCOMPLETE;
+
+        let state = phy.get_link_state();
+
+        assert_eq!(
+            state,
+            Err(crate::LinkStateError::AutonegotiationNotCompleted)
+        )
+    }
+
+    #[test]
+    fn link_state_10fd() {
+        let mut phy = GIGABIT_10M_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps10,
+                duplex: crate::registers::Duplex::Full
+            }
+        )
+    }
+
+    #[test]
+    fn link_state_100fd() {
+        let mut phy = GIGABIT_100M_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps100,
+                duplex: crate::registers::Duplex::Full
+            }
+        )
+    }
+
+    #[test]
+    fn link_state_1gfd() {
+        let mut phy = GIGABIT_GIGABIT_PARTNER;
+
+        let state = phy.get_link_state().unwrap();
+
+        assert_eq!(
+            state,
+            LinkState {
+                speed: crate::LinkSpeed::Mbps1000,
+                duplex: crate::registers::Duplex::Full
             }
         )
     }
