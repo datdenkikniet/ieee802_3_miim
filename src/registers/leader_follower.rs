@@ -9,10 +9,10 @@ use crate::registers::{Register, RegisterAddress};
 #[derive(Clone, Copy, FromBits, Debug, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum PortType {
-    /// The port is a leader.
-    Leader,
     /// The port is a follower.
-    Follower,
+    Follower = 0,
+    /// The port is a leader.
+    Leader = 1,
 }
 
 /// The leader-follower control register.
