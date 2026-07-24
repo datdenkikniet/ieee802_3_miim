@@ -26,6 +26,26 @@
 // 0xe: MMD
 // 0xf: basic
 
+fn assert_default<T: Default>() {}
+
+macro_rules! from_into {
+    ($name:ident) => {
+        impl From<u16> for $name {
+            fn from(value: u16) -> Self {
+                $name::new_with_raw_value(value)
+            }
+        }
+
+        impl From<$name> for u16 {
+            fn from(value: $name) -> Self {
+                crate::registers::assert_default::<$name>();
+
+                value.raw_value()
+            }
+        }
+    };
+}
+
 // Reg 2 and 3 are PHY ident and are handled at a higher
 // level.
 //

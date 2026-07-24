@@ -1,6 +1,6 @@
 use std::num::ParseIntError;
 
-use bilge::prelude::u5;
+use arbitrary_int::u5;
 use ieee802_3_miim::{
     mdio::PhyAddress,
     registers::{
@@ -14,6 +14,7 @@ use ieee802_3_miim::{
 use crate::ioctl_mdio::IoctlMdio;
 
 mod ioctl_mdio {
+    use arbitrary_int::u5;
     use ieee802_3_miim::RegisterAddress;
     use nix::{
         errno::Errno,
@@ -109,7 +110,7 @@ mod ioctl_mdio {
             self.op(SIOCSMIIREG, address.get() as _, value);
         }
 
-        fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16 {
+        fn mmd_read(&mut self, device_address: u5, reg_address: u16) -> u16 {
             // linux supports detection of MMD support through special PHY address,
             // PHY_ADDRESS = 0x8000 | (phy_address << 5) | dev_addr
             self.phy_address <<= 5;
@@ -124,12 +125,7 @@ mod ioctl_mdio {
             result
         }
 
-        fn mmd_write(
-            &mut self,
-            device_address: bilge::prelude::u5,
-            reg_address: u16,
-            reg_value: u16,
-        ) {
+        fn mmd_write(&mut self, device_address: u5, reg_address: u16, reg_value: u16) {
             // linux supports detection of MMD support through special PHY address,
             // PHY_ADDRESS = 0x8000 | (phy_address << 5) | dev_addr
             self.phy_address <<= 5;
@@ -152,19 +148,15 @@ mod ioctl_mdio {
             IoctlMdio::write_raw(self, address, value)
         }
 
-        fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16
+        fn mmd_read(&mut self, device_address: u5, reg_address: u16) -> u16
         where
             Self: Sized,
         {
             IoctlMdio::mmd_read(self, device_address, reg_address)
         }
 
-        fn mmd_write(
-            &mut self,
-            device_address: bilge::prelude::u5,
-            reg_address: u16,
-            reg_value: u16,
-        ) where
+        fn mmd_write(&mut self, device_address: u5, reg_address: u16, reg_value: u16)
+        where
             Self: Sized,
         {
             IoctlMdio::mmd_write(self, device_address, reg_address, reg_value);
@@ -180,19 +172,15 @@ mod ioctl_mdio {
             IoctlMdio::write_raw(self, address, value)
         }
 
-        fn mmd_read(&mut self, device_address: bilge::prelude::u5, reg_address: u16) -> u16
+        fn mmd_read(&mut self, device_address: u5, reg_address: u16) -> u16
         where
             Self: Sized,
         {
             IoctlMdio::mmd_read(self, device_address, reg_address)
         }
 
-        fn mmd_write(
-            &mut self,
-            device_address: bilge::prelude::u5,
-            reg_address: u16,
-            reg_value: u16,
-        ) where
+        fn mmd_write(&mut self, device_address: u5, reg_address: u16, reg_value: u16)
+        where
             Self: Sized,
         {
             IoctlMdio::mmd_write(self, device_address, reg_address, reg_value);

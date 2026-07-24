@@ -1,7 +1,5 @@
 //! The basic register set.
 
-use bilge::{bitsize, prelude::*, FromBits};
-
 use crate::{
     registers::{Register, RegisterAddress},
     LinkSpeed,
@@ -12,55 +10,72 @@ use crate::{
 /// This register reports part of the PHY's capabilities, and contains status
 /// flags.
 ///
-/// Defined in 22.2.4.2.
-#[bitsize(16)]
-#[derive(Clone, Copy, DebugBits, FromBits)]
-#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
+// Defined in 22.2.4.2.
+#[bitbybit::bitfield(u16, forbid_overlaps, default = 0, defmt_bitfields(feature = "defmt"))]
+#[derive(Debug, PartialEq)]
 pub struct BasicStatus {
     /// Whether this PHY supports the extended capability registers (2-14, 16-31) defined
     /// by the standard.
+    #[bit(0, rw)]
     pub extended_capabilities: bool,
     /// Whether this PHY has detected a jabber event.
     ///
     /// This bit is cleared on a read of the register.
+    #[bit(1, rw)]
     pub jabber_detect: bool,
     /// Whether the PHY has detected a valid link.
+    #[bit(2, rw)]
     pub link_status: bool,
     /// Whether this PHY is able to perform autonegotiation.
+    #[bit(3, rw)]
     pub autonegotiate_able: bool,
     /// A remote fault was detected.
+    #[bit(4, rw)]
     pub remote_fault: bool,
     /// Autonegotiation has completed.
     ///
     /// Once this bit is set, the auto negotiation registers for
     /// the PHY are valid.
+    #[bit(5, rw)]
     pub autonegotiation_complete: bool,
     /// Whether this PHY supports reading management frames without
     /// management preamble.
     ///
     /// See 22.2.4.6.2 for more information about what this bit
     /// can be used for.
+    #[bit(6, rw)]
     pub mf_preamble_suppression: bool,
     /// Whether this PHY supports transmitting regardless of whether
     /// it has established a valid link.
+    #[bit(7, rw)]
     pub unidirectional_ability: bool,
     /// The PHY supports the [`ExtendedStatus`] register.
+    #[bit(8, rw)]
     pub extended_status: bool,
     /// The PHY supports 100BASE-T2, Half-Duplex.
+    #[bit(9, rw)]
     pub _100base_t2_hd: bool,
     /// The PHY supports 100BASE-T2, Full-Duplex.
+    #[bit(10, rw)]
     pub _100base_t2_fd: bool,
     /// The PHY supports 10BASE-T, Half-Duplex.
+    #[bit(11, rw)]
     pub _10base_t_hd: bool,
     /// The PHY supports 10BASE-T, Full-Duplex.
+    #[bit(12, rw)]
     pub _10base_t_fd: bool,
     /// The PHY supports 100BASE-X, Half-Duplex.
+    #[bit(13, rw)]
     pub _100base_x_hd: bool,
     /// The PHY supports 100BASE-X, Full-Duplex.
+    #[bit(14, rw)]
     pub _100base_x_fd: bool,
     /// The PHY supports 100BASE-T4.
+    #[bit(15, rw)]
     pub _100base_t4: bool,
 }
+
+from_into!(BasicStatus);
 
 impl Register for BasicStatus {
     const ADDRESS: RegisterAddress = RegisterAddress::new(1).unwrap();
@@ -73,29 +88,33 @@ impl Register for BasicStatus {
 /// this register, and standard-conforming GMII PHYs _must_ support this
 /// register).
 ///
-/// Defined in 22.2.4.4.
-#[bitsize(16)]
-#[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
+// Defined in 22.2.4.4.
+#[bitbybit::bitfield(u16, forbid_overlaps, default = 0, defmt_bitfields(feature = "defmt"))]
+#[derive(Debug, PartialEq)]
 pub struct ExtendedStatus {
-    reserved: u12,
+    #[bit(12, rw)]
     /// The PHY spuports 1000BASE-T, Half-Duplex.
     pub _1000base_t_hd: bool,
     /// The PHY spuports 1000BASE-T, Full-Duplex.
+    #[bit(13, rw)]
     pub _1000base_t_fd: bool,
     /// The PHY spuports 1000BASE-X, Half-Duplex.
+    #[bit(14, rw)]
     pub _1000base_x_hd: bool,
     /// The PHY spuports 1000BASE-X, Full-Duplex.
+    #[bit(15, rw)]
     pub _1000base_x_fd: bool,
 }
+
+from_into!(ExtendedStatus);
 
 impl Register for ExtendedStatus {
     const ADDRESS: RegisterAddress = RegisterAddress::new(15).unwrap();
 }
 
 /// A duplex mode.
-#[bitsize(1)]
-#[derive(Clone, Copy, Debug, FromBits, PartialEq, Eq, PartialOrd, Ord)]
+#[bitbybit::bitenum(u1, exhaustive = true)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Duplex {
     /// Full duplex.
@@ -146,17 +165,28 @@ impl LinkConfig {
 
 /// The Control Register, containing basic control bits.
 ///
-/// Defined in 37.2.5.1.1.
-#[bitsize(16)]
-#[derive(FromBits, DebugBits, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(bilge_defmt::FormatBits))]
+// Defined in 37.2.5.1.1.
+#[bitbybit::bitfield(u16, forbid_overlaps, default = 0, defmt_bitfields(feature = "defmt"))]
+#[derive(Debug, PartialEq)]
 pub struct BasicControl {
-    reserved: u5,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(5, rw)]
     unidirectional_enable: bool,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(6, rw)]
     speed_sel_msb: bool,
     /// Enable the collision test signal.
+    #[bit(7, rw)]
     pub collision_test: bool,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(8, rw)]
     duplex_mode: Duplex,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(9, rw)]
     restart_autonegotiation: bool,
     /// Electrically isolate the PHY from its (Gigabit) Media Independent
     /// Interface.
@@ -164,17 +194,27 @@ pub struct BasicControl {
     /// In other words, disconnect the PHY from the pins it shares
     /// with the MAC component connected to it. Setting this bit
     /// _does_ retain access to the PHY over MIIM.
+    #[bit(10, rw)]
     pub isolate: bool,
     /// Enable Power-Down mode.
+    #[bit(11, rw)]
     pub power_down: bool,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(12, rw)]
     autonegotiation_enable: bool,
+    /// Do not access this field directly: use [`BasicControl::set_link_config`]
+    /// and [`BasicControl::get_link_config`] instead.
+    #[bit(13, rw)]
     speed_sel_lsb: bool,
     /// Enable loopback mode.
+    #[bit(14, rw)]
     pub loopback: bool,
     /// Perform a reset.
     ///
     /// If set, this bit will stay high until the reset
     /// has completed.
+    #[bit(15, rw)]
     pub reset: bool,
 }
 
@@ -233,6 +273,8 @@ impl BasicControl {
         }
     }
 }
+
+from_into!(BasicControl);
 
 impl Register for BasicControl {
     const ADDRESS: RegisterAddress = RegisterAddress::new(0).unwrap();
