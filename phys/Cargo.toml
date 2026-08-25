@@ -1,6 +1,6 @@
 [package]
 name = "phys"
-version = "0.1.0-pre"
+version = "0.1.0"
 edition = "2021"
 authors = ["Johannes Cornelis Draaijer <jcdra1@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -11,7 +11,7 @@ categories = ["embedded", "no-std", "hardware-support"]
 readme = "README.md"
 
 [dependencies]
-ieee802_3_miim = { path = "../ieee802_3_miim", version = "0.9.1" }
+ieee802_3_miim = { path = "../ieee802_3_miim", version = "0.10" }
 
 [features]
 lan8720a = [  ]
